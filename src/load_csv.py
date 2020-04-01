@@ -15,7 +15,7 @@ def load_telco_data(path: os.PathLike) -> pd.DataFrame:
         # "ta_2018_code": str,
         "sa2_2018_code": str,
         "time": str,
-        "count": float,
+        "count": int,
     }
 
     df = pd.read_csv(

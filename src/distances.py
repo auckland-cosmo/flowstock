@@ -46,6 +46,17 @@ def remove_furthest_points(
     return out
 
 
+def locations_in_range(
+    centroid_data: geopandas.GeoDataFrame, dist: float, loc: str
+) -> List[str]:
+
+    shrunk = remove_furthest_points(centroid_data, dist, loc)
+
+    out = shrunk.region_code.tolist()
+
+    return out
+
+
 def parse_args(args):
     """
     Parse command line arguments
@@ -80,20 +91,15 @@ def main(argv: List[str]) -> None:
     print("Loading ", args.file_name)
 
     centroid_data = load_csv.load_centroid_data_2018(args.file_name)
-    print(centroid_data)
 
     if args.d is not None:
         shrunk = remove_furthest_points(centroid_data, int(args.d[0]), str(args.d[1]))
     else:
         shrunk = centroid_data
 
-    print(shrunk)
-
     distance_table = calculate_distances(shrunk)
 
     # output save file
-    print(distance_table)
-
     distance_table.to_csv(args.out)
 
 

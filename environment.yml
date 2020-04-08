@@ -10,3 +10,11 @@ dependencies:
   - numpy
   - pandas
   - seaborn
+
+  # Development
+  - pre-commit
+  - black
+  - isort
+  - flake8
+  - mypy
+  - pytest

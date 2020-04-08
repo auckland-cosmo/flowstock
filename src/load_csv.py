@@ -1,6 +1,8 @@
 import os
 
+import geopandas  # type: ignore
 import pandas as pd  # type: ignore
+from shapely import wkt  # type: ignore
 
 
 def load_telco_data(path: os.PathLike) -> pd.DataFrame:
@@ -28,6 +30,43 @@ def load_telco_data(path: os.PathLike) -> pd.DataFrame:
     return df
 
 
+def load_centroid_data_2018(path: os.PathLike) -> pd.DataFrame:
+    """
+    Load centroid data from a csv file to a GeoDataFrame
+
+    Ignore some columns that don't look too useful and rename the others
+
+    Assumes that the data's centroid coordinates are in the EPSG:2193 frame.
+    """
+
+    dtype_dict = {
+        "WKT": str,
+        "SA22018_V1_00": str,
+        "SA22018_V1_NAME": str,
+        # "LAND_AREA_SQ_KM": float,
+        # "AREA_SQ_KM": float,
+        # "EASTING": float,
+        # "NORTHING": float,
+        # "LATITUDE": float,
+        # "LONGITUDE": float,
+        # "Shape_X": float,
+        # "Shape_Y": float,
+    }
+
+    df = pd.read_csv(path, usecols=dtype_dict.keys(), dtype=dtype_dict)
+
+    df = df.rename(
+        columns={"SA22018_V1_00": "region_code", "SA22018_V1_NAME": "region_name"}
+    )
+
+    df["centroid"] = df.WKT.apply(wkt.loads)
+    df.drop("WKT", axis=1, inplace=True)
+
+    df = geopandas.GeoDataFrame(data=df, geometry="centroid", crs="EPSG:2193")
+
+    return df
+
+
 def load_area_data_2018(path: os.PathLike) -> pd.DataFrame:
     """
     Load area data from a csv file to a dataframe
@@ -36,7 +75,7 @@ def load_area_data_2018(path: os.PathLike) -> pd.DataFrame:
     """
 
     dtype_dict = {
-        # "WKT": str,
+        "WKT": str,
         "SA22018_V1_00": str,
         "SA22018_V1_NAME": str,
         # "LAND_AREA_SQ_KM": float,

@@ -42,7 +42,7 @@ class Akagi:
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 2
         self.s: np.ndarray = np.ones(num_cells) / 2
-        self.beta: float = 1.0e1
+        self.beta: float = 1.0
 
         self.lamda = 1000
 
@@ -101,7 +101,7 @@ class Akagi:
             np.log((pi + (pi == 0))[np.newaxis, ..., np.newaxis])
             + np.log(s[np.newaxis, np.newaxis, ...])
             - beta * d[np.newaxis, ...]
-            - np.log(sexp.sum(axis=1, where=[self.gamma_exc]))[
+            - np.log(sexp.sum(axis=1, where=self.gamma_exc))[
                 np.newaxis, ..., np.newaxis
             ]
         ) * M

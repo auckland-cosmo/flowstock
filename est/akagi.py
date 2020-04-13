@@ -57,7 +57,7 @@ class Akagi:
 
         while L > L_old:
             print("step # ", step, ", L = ", L)
-            print("M[0] = \n", self.M[0])
+            print("M[0][0] = \n", self.M[0][0])
             print("pi = ", self.pi)
             print("s = ", self.s)
             print("beta = ", self.beta)
@@ -146,7 +146,7 @@ class Akagi:
             args=(self.pi, self.s, self.beta),
             method="L-BFGS-B",
             bounds=bounds,
-            options={"maxfun": 15_000_000},
+            # options={"maxfun": 15_000_000},
         )
 
         try:
@@ -184,22 +184,24 @@ class Akagi:
                 self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(-beta_u * self.d)
             ).sum(where=self.gamma_exc, axis=1)
 
-            # # Update beta
-            # beta_u_res = opt.minimize(
-            #     lambda beta_u_: - self.f_u(self.s, self.beta, s_u, beta_u_),
-            #     x0=beta_u,
-            #     method='CG',
-            #     # bounds=(0, 100),
-            # )
-            # try:
-            #     assert beta_u_res.success
-            #     beta_u = beta_u_res.x
-            # except:
-            #     print("Error maximizing wrt beta_u")
-            #     print(beta_u_res.message)
-            #     print("Bashing on regardless")
+            # Update beta
+            beta_u_res = opt.minimize(
+                lambda beta_u_: -self.f_u(self.s, self.beta, s_u, beta_u_),
+                x0=beta_u,
+                method="SLSQP",
+                bounds=[(0, 1)],
+            )
+            try:
+                assert beta_u_res.success
+                beta_u = beta_u_res.x
+            except AssertionError as err:
+                print("Error maximizing wrt beta_u")
+                print(err)
+                print(beta_u_res.message)
+                print("Bashing on regardless")
 
             f_old, f_new = f_new, self.f(s_u, beta_u)
+            step += 1
 
         self.s = s_u
         self.beta = beta_u

@@ -5,7 +5,7 @@ import argparse
 import sys
 from typing import List
 
-import pandas  # type: ignore
+import pandas as pd  # type: ignore
 
 import distances
 import load_csv
@@ -55,9 +55,16 @@ def main(argv: List[str]) -> None:
     codes = distances.locations_in_range(centroid_data, int(args.dist), str(args.loc))
 
     print("Filtering telco data by region")
-    telco = pandas.read_csv(args.telco_file_name, dtype={"sa2_2018_code": str})
+    telco = pd.read_csv(args.telco_file_name, dtype={"sa2_2018_code": str})
 
-    telco[telco["sa2_2018_code"].isin(codes)].to_csv(args.out, index=False)
+    telco = pd.pivot_table(
+        telco[telco["sa2_2018_code"].isin(codes)],
+        index="time",
+        columns="sa2_2018_code",
+        values="count",
+    )
+
+    telco.to_csv(args.out, index=True)
 
 
 if __name__ == "__main__":

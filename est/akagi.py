@@ -91,7 +91,7 @@ class Akagi:
 
         d = self.d
 
-        sexp = s * np.exp(-beta * d)
+        sexp = s[np.newaxis, ...] * np.exp(-beta * d)
 
         term_0 = np.log(1 - pi)[np.newaxis, ...] * M.diagonal(axis1=1, axis2=2)
         assert term_0.shape == (self.T - 1, self.num_cells)
@@ -235,7 +235,7 @@ class Akagi:
         return out
 
     def A(self):
-        out = self.M.sum(where=self.gamma_exc, axis=(0, 1))
+        out = self.M.sum(where=self.gamma_exc.T, axis=(0, 1))
         assert out.shape == (self.num_cells,)
 
         return out
@@ -263,7 +263,9 @@ class Akagi:
         return out
 
     def sexp_term(self, s, beta):
-        out = (s * np.exp(-beta * self.d)).sum(where=self.gamma_exc, axis=1)
+        out = (s[np.newaxis, ...] * np.exp(-beta * self.d)).sum(
+            where=self.gamma_exc, axis=1
+        )
         assert out.shape == (self.num_cells,)
 
         return out

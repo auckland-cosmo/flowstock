@@ -184,6 +184,9 @@ class Akagi:
                 self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(-beta_u * self.d)
             ).sum(where=self.gamma_exc, axis=1)
 
+            # Renormalize s
+            s_u /= s_u.max()
+
             # Update beta
             beta_u_res = opt.minimize(
                 lambda beta_u_: -self.f_u(self.s, self.beta, s_u, beta_u_),

@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
@@ -136,8 +136,7 @@ class Akagi:
 
     def update_M(self):
 
-        # TODO: bounds can be much more precise
-        bounds = [(0, self.N.max() * 1.5) for _ in range(self.M.size)]
+        bounds = self.M_bound()
 
         result = opt.minimize(
             self.neg_likelihood_flat,
@@ -278,3 +277,25 @@ class Akagi:
         gamma = self.d <= self.K
 
         return gamma
+
+    def M_bound(self) -> List[Tuple[float, float]]:
+
+        N = self.N
+        gamma = self.gamma
+
+        # Can't have more people move out of a region than are in it
+        # Allow for 10% more people flowing from a cell - there is noise in the data
+        upper_col = N[:-1][..., np.newaxis].astype(float) * 1.1
+        upper = np.repeat(upper_col, self.num_cells, axis=2)
+
+        # Can't have people move to disallowed regions
+        upper_dist = np.where(gamma[np.newaxis, ...], upper, 0)
+
+        assert upper_dist.shape == self.M.shape
+
+        # Can't have negative people flowing into a region
+        lower = np.zeros_like(upper_dist)
+
+        bounds = list(zip(lower.flatten(), upper_dist.flatten()))
+
+        return bounds

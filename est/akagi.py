@@ -12,7 +12,9 @@ class Akagi:
 
     def __init__(self, N: np.ndarray, d: np.ndarray):
 
+        # array of populations in regions at times
         self.N: np.ndarray = N
+
         # array of distances
         self.d: np.ndarray = d
 
@@ -33,11 +35,6 @@ class Akagi:
         self.M: np.ndarray = np.zeros((self.T - 1, num_cells, num_cells), dtype=int)
         for i in range(self.M.shape[0]):
             np.fill_diagonal(self.M[i], N[i])  # Default to no movement
-        # self.M: np.ndarray = np.random.randint(
-        #     0,
-        #    N.max(),
-        #    (self.T - 1, num_cells, num_cells),
-        # )
 
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 2
@@ -176,7 +173,16 @@ class Akagi:
         f_old = f_new - 1
 
         while f_old < f_new:
-            print("s, beta step #", step, "s_u = ", s_u, ", beta_u = ", beta_u)
+            print(
+                "s, beta step #",
+                step,
+                "s_u = ",
+                s_u,
+                ", beta_u = ",
+                beta_u,
+                ", f_new = ",
+                f_new,
+            )
 
             # Update s
             s_u = self.A() / (

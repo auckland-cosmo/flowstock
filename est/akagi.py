@@ -49,10 +49,12 @@ class Akagi:
         """
 
         step = 0
-        L = self.likelihood(self.M, self.pi, self.s, self.beta)
-        L_old = L - 1
+        eps = 1e-8
 
-        while L > L_old:
+        L = self.likelihood(self.M, self.pi, self.s, self.beta)
+        L_old = L * (1 + 0.5)
+
+        while abs((L_old - L) / L) > eps:
             print("step # ", step, ", L = ", L)
             print("M[0][0] = \n", self.M[0][0])
             print("pi = ", self.pi)
@@ -168,11 +170,12 @@ class Akagi:
         beta_u = self.beta
 
         step = 0
+        eps = 1e-8
 
         f_new = self.f(s_u, beta_u)
-        f_old = f_new - 1
+        f_old = f_new * (1 + 0.5)
 
-        while f_old < f_new:
+        while abs((f_old - f_new) / f_new) > eps:
             print(
                 "s, beta step #",
                 step,

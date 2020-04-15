@@ -10,7 +10,7 @@ class Akagi:
     Use the method of Akagi et al to estimate movement
     """
 
-    def __init__(self, N: np.ndarray, d: np.ndarray):
+    def __init__(self, N: np.ndarray, d: np.ndarray, K: float):
 
         # array of populations in regions at times
         self.N: np.ndarray = N
@@ -23,7 +23,7 @@ class Akagi:
         self.num_cells: int = num_cells
 
         # Distance threshold
-        self.K: float = 1
+        self.K: float = K
 
         # List of indices of neighbors of respective cells
         self.gamma: np.ndarray = self.gamma_calc()

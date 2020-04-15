@@ -49,7 +49,7 @@ class Akagi:
         """
 
         step = 0
-        eps = 1e-8
+        eps = 1e-5
 
         L = self.likelihood(self.M, self.pi, self.s, self.beta)
         L_old = L * (1 + 0.5)

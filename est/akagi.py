@@ -166,56 +166,59 @@ class Akagi:
 
     def update_s_beta(self):
 
-        s_u = self.s
-        beta_u = self.beta
+        s = self.s
+        beta = self.beta
 
         step = 0
         eps = 1e-8
 
-        f_new = self.f(s_u, beta_u)
+        f_new = self.f(s, beta)
         f_old = f_new * (1 + 0.5)
 
         while abs((f_old - f_new) / f_new) > eps:
             print(
                 "s, beta step #",
                 step,
-                "s_u = ",
-                s_u,
-                ", beta_u = ",
-                beta_u,
+                "s = ",
+                s,
+                ", beta = ",
+                beta,
                 ", f_new = ",
                 f_new,
             )
 
             # Update s
-            s_u = self.A() / (
-                self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(-beta_u * self.d)
+            # The paper says to use s_u and beta_u, I didn't
+            s = self.A() / (
+                self.C_u(s, beta)[..., np.newaxis] * np.exp(-beta * self.d)
             ).sum(where=self.gamma_exc, axis=1)
 
             # Renormalize s
-            s_u /= s_u.max()
+            s /= s.max()
 
             # Update beta
-            beta_u_res = opt.minimize(
-                lambda beta_u_: -self.f_u(self.s, self.beta, s_u, beta_u_),
-                x0=beta_u,
+            # The paper says to use f_u, s_u and beta_u, I didn't
+            beta_res = opt.minimize(
+                lambda beta_: -self.f(self.s, beta_),
+                x0=beta,
                 method="SLSQP",
                 bounds=[(0, 10)],
             )
             try:
-                assert beta_u_res.success
-                beta_u = beta_u_res.x
+                assert beta_res.success
+                beta = beta_res.x[0]
             except AssertionError as err:
-                print("Error maximizing wrt beta_u")
+                print("Error maximizing wrt beta")
                 print(err)
-                print(beta_u_res.message)
+                print(beta_res.message)
                 print("Bashing on regardless")
+                beta = beta_res.x
 
-            f_old, f_new = f_new, self.f(s_u, beta_u)
+            f_old, f_new = f_new, self.f(s, beta)
             step += 1
 
-        self.s = s_u
-        self.beta = beta_u
+        self.s = s
+        self.beta = beta
 
     def f(self, s, beta):
         """
@@ -228,20 +231,6 @@ class Akagi:
         sexp_term = self.sexp_term(s, beta)
 
         out = (A * np.log(s) - B * np.log(sexp_term)).sum(axis=0) - beta * D
-
-        return out
-
-    def f_u(self, s, beta, s_u, beta_u):
-        """
-        Lower bound function for Minorization-Maximization Algorith
-        """
-
-        A = self.A()
-        C_u = self.C_u(s_u, beta_u)
-        D = self.D()
-        sexp_term = self.sexp_term(s, beta)
-
-        out = (A * np.log(s) - C_u * sexp_term).sum(axis=0) - beta * D
 
         return out
 

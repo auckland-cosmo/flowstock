@@ -197,7 +197,7 @@ class Akagi:
                 lambda beta_u_: -self.f_u(self.s, self.beta, s_u, beta_u_),
                 x0=beta_u,
                 method="SLSQP",
-                bounds=[(0, 1)],
+                bounds=[(0, 10)],
             )
             try:
                 assert beta_u_res.success

@@ -31,6 +31,9 @@ class Akagi:
         self.gamma_exc: np.ndarray = self.gamma.copy()
         np.fill_diagonal(self.gamma_exc, False)
 
+        self.gamma_indices = np.where(self.gamma)
+        self.gamma_exc_indices = np.where(self.gamma_exc)
+
         # self.M is the main output of the algorithm
         self.M: np.ndarray = np.zeros((self.T - 1, num_cells, num_cells), dtype=int)
         for i in range(self.M.shape[0]):
@@ -115,8 +118,8 @@ class Akagi:
 
         out = 0
         out += term_0.sum(axis=(0, 1))
-        out += term_1.sum(axis=2, where=self.gamma_exc).sum(axis=(0, 1))
-        out += term_2.sum(axis=2, where=self.gamma).sum(axis=(0, 1))
+        out += term_1[:, self.gamma_exc_indices[0], self.gamma_exc_indices[1]].sum()
+        out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
         out += term_3
 
         return out

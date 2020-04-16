@@ -116,7 +116,7 @@ class Akagi:
         out = 0
         out += term_0.sum(axis=(0, 1))
         out += term_1.sum(axis=2, where=self.gamma_exc).sum(axis=(0, 1))
-        out += term_2.sum(axis=(0, 1, 2))
+        out += term_2.sum(axis=2, where=self.gamma).sum(axis=(0, 1))
         out += term_3
 
         return out

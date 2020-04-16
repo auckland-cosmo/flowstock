@@ -133,7 +133,17 @@ class Akagi:
 
         return out
 
-    def update_M(self):
+    def update_M(self) -> bool:
+        """
+        Update M
+
+        Search for an M that minimizes the likelihood
+
+        Returns
+        -------
+        bool : True if there were no errors
+               False if there were errors
+        """
 
         bounds = self.M_bound()
 
@@ -155,6 +165,8 @@ class Akagi:
 
         self.M = np.reshape(result.x, self.M.shape)
 
+        return result.success
+
     def update_pi(self):
 
         numer = self.M.sum(where=self.gamma_exc, axis=2).sum(axis=0)
@@ -164,7 +176,15 @@ class Akagi:
 
         self.pi = numer / denom
 
-    def update_s_beta(self):
+    def update_s_beta(self) -> bool:
+        """
+        Update s and beta iteratively
+
+        Returns
+        -------
+        bool : True if there were no errors
+               False if there were errors
+        """
 
         s = self.s
         beta = self.beta
@@ -219,6 +239,8 @@ class Akagi:
 
         self.s = s
         self.beta = beta
+
+        return beta_res.success
 
     def f(self, s, beta):
         """

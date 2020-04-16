@@ -213,6 +213,10 @@ class Akagi:
                 self.C_u(s, beta)[..., np.newaxis] * np.exp(-beta * self.d)
             ).sum(where=self.gamma_exc, axis=1)
 
+            # Fudge to force s != 0
+            # Avoids problems with logs of 0 in calculation of f
+            s = s + (s == 0.0) * 1e-5
+
             # Renormalize s
             s /= s.max()
 

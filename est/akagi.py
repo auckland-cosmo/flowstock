@@ -178,8 +178,7 @@ class Akagi:
         try:
             assert result.success
         except AssertionError:
-            print("Error searching for minimum M")
-            print(result.message)
+            print("Error minimizing M", result.message)
 
         self.M = np.reshape(result.x, self.M.shape)
 

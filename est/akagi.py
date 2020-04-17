@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
 
@@ -113,10 +114,10 @@ class Akagi:
         term_2 = M * (1 - np.log(M + (M == 0)))
         assert term_2.shape == (self.T - 1, self.num_cells, self.num_cells)
 
-        term_3 = -self.lamda / 2 * self.cost(M, self.N)
-        assert term_3.shape == ()
+        term_3 = -self.lamda / 2.0 * self.cost(M, self.N)
+        assert type(term_3) == float
 
-        out = 0
+        out = 0.0
         out += term_0.sum(axis=(0, 1))
         out += term_1[:, self.gamma_exc_indices[0], self.gamma_exc_indices[1]].sum()
         out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
@@ -124,17 +125,12 @@ class Akagi:
 
         return out
 
-    def cost(self, M, N):
+    def cost(self, M: np.ndarray, N: np.ndarray) -> float:
         """
         Cost function
         """
 
-        out = (
-            (np.abs(N[:-1] - M.sum(axis=2)) ** 2).sum(axis=1)
-            + (np.abs(N[1:] - M.sum(axis=1)) ** 2).sum(axis=1)
-        ).sum(axis=0)
-
-        return out
+        return _cost(M, N)
 
     def update_M(self) -> bool:
         """
@@ -326,3 +322,13 @@ class Akagi:
         bounds = list(zip(lower.flatten(), upper_dist.flatten()))
 
         return bounds
+
+
+@numba.jit(nopython=True, fastmath=True)
+def _cost(M: np.ndarray, N: np.ndarray) -> float:
+    term_0 = (np.abs(N[:-1] - M.sum(axis=2)) ** 2).sum()
+    term_1 = (np.abs(N[1:] - M.sum(axis=1)) ** 2).sum()
+
+    out = term_0 + term_1
+
+    return out

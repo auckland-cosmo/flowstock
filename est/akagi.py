@@ -60,10 +60,6 @@ class Akagi:
 
         while abs((L_old - L) / L) > eps:
             print("step # ", step, ", L = ", L)
-            print("M[0][0] = \n", self.M[0][0])
-            print("pi = ", self.pi)
-            print("s = ", self.s)
-            print("beta = ", self.beta)
 
             self.update_M()
 
@@ -195,16 +191,6 @@ class Akagi:
         f_old = f_new * (1 + 0.5)
 
         while abs((f_old - f_new) / f_new) > eps:
-            print(
-                "s, beta step #",
-                step,
-                "s = ",
-                s,
-                ", beta = ",
-                beta,
-                ", f_new = ",
-                f_new,
-            )
 
             # Update s
             # The paper says to use s_u and beta_u, I didn't

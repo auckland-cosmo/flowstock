@@ -11,6 +11,8 @@ class ForwardSimulator:
         self.beta = beta
         self.d = d
 
+        self.noise_amplitude = 0.0
+
         num_cells = d.shape[0]
 
         gamma = [np.where(d[i] <= K)[0] for i in range(num_cells)]
@@ -43,8 +45,19 @@ class ForwardSimulator:
 
         for t in range(num_steps - 1):
 
+            # Loop over cells
             for i in range(num_cells):
-                for p in range(N[t, i]):
+
+                amp = int(self.noise_amplitude * N[t, i])
+
+                if amp == 0:
+                    people = N[t, i]
+                else:
+                    noise = max(np.random.randint(-amp, amp), -N[t, i])
+                    people = N[t, i] + noise
+
+                # Loop over people in cell after noise added
+                for p in range(people):
                     rand = np.random.uniform(0, 1)
 
                     to_index = np.searchsorted(self.theta_cum[i], rand)

@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numba  # type: ignore
 import numpy as np  # type: ignore
@@ -72,7 +72,7 @@ class Akagi:
 
         return self.M, self.pi, self.s, self.beta
 
-    def neg_likelihood_flat(self, M, pi, s, beta) -> float:
+    def neg_likelihood_flat(self, M, pi, s, beta, term_1_braces=None) -> float:
         """
         Calculate likelihood with flattened M
 
@@ -81,29 +81,29 @@ class Akagi:
 
         M_reshaped = np.reshape(M, self.M.shape)
 
-        return -self.likelihood(M_reshaped, pi, s, beta)
+        return -self.likelihood(M_reshaped, pi, s, beta, term_1_braces=term_1_braces)
 
-    def likelihood(self, M, pi, s, beta) -> float:
+    def likelihood(
+        self,
+        M: np.ndarray,
+        pi: np.ndarray,
+        s: np.ndarray,
+        beta: np.ndarray,
+        term_1_braces: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Calculate  likelihood
         """
 
         d = self.d
 
-        sexp = s[np.newaxis, ...] * np.exp(-beta * d)
-
         term_0 = np.log(1 - pi)[np.newaxis, ...] * M.diagonal(axis1=1, axis2=2)
         assert term_0.shape == (self.T - 1, self.num_cells)
 
-        term_1 = (
-            # TODO: Handle 0 in log
-            np.log((pi + (pi == 0))[np.newaxis, ..., np.newaxis])
-            + np.log(s[np.newaxis, np.newaxis, ...])
-            - beta * d[np.newaxis, ...]
-            - np.log(sexp.sum(axis=1, where=self.gamma_exc))[
-                np.newaxis, ..., np.newaxis
-            ]
-        ) * M
+        if term_1_braces is None:
+            term_1_braces = self.term_1_braces(pi, s, beta, d)
+
+        term_1 = term_1_braces * M
         assert term_1.shape == (self.T - 1, self.num_cells, self.num_cells)
 
         # TODO: Is this the best way to handle zeros in log?
@@ -128,6 +128,24 @@ class Akagi:
 
         return _cost(M, N)
 
+    def term_1_braces(
+        self, pi: np.ndarray, s: np.ndarray, beta: float, d: np.ndarray
+    ) -> np.ndarray:
+
+        sexp = s[np.newaxis, ...] * np.exp(-beta * d)
+
+        out = (
+            # TODO: Handle 0 in log
+            np.log((pi + (pi == 0))[np.newaxis, ..., np.newaxis])
+            + np.log(s[np.newaxis, np.newaxis, ...])
+            - beta * d[np.newaxis, ...]
+            - np.log(sexp.sum(axis=1, where=self.gamma_exc))[
+                np.newaxis, ..., np.newaxis
+            ]
+        )
+
+        return out
+
     def update_M(self) -> bool:
         """
         Update M
@@ -142,11 +160,13 @@ class Akagi:
 
         bounds = self.M_bound()
 
+        term_1_braces = self.term_1_braces(self.pi, self.s, self.beta, self.d)
+
         result = opt.minimize(
             self.neg_likelihood_flat,
             # Use current M as initial guess
             x0=self.M,
-            args=(self.pi, self.s, self.beta),
+            args=(self.pi, self.s, self.beta, term_1_braces),
             method="L-BFGS-B",
             bounds=bounds,
             options={

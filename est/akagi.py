@@ -149,7 +149,10 @@ class Akagi:
             args=(self.pi, self.s, self.beta),
             method="L-BFGS-B",
             bounds=bounds,
-            # options={"maxfun": 15_000_000},
+            options={
+                "ftol": 1e-5,
+                # "maxfun": 15_000_000,
+            },
         )
 
         try:

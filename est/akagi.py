@@ -36,7 +36,7 @@ class Akagi:
         self.gamma_exc_indices = np.where(self.gamma_exc)
 
         # self.M is the main output of the algorithm
-        self.M: np.ndarray = np.zeros((self.T - 1, num_cells, num_cells), dtype=int)
+        self.M: np.ndarray = np.zeros((self.T - 1, num_cells, num_cells), dtype=float)
         for i in range(self.M.shape[0]):
             np.fill_diagonal(self.M[i], N[i])  # Default to no movement
 

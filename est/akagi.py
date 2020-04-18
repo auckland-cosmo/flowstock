@@ -108,42 +108,19 @@ class Akagi:
         if term_1_braces is None:
             term_1_braces = self.term_1_braces(pi, s, beta, d)
 
-        out = self._likelihood(M, pi, s, beta, term_0_log, term_1_braces, d)
-
-        return out
-
-    def _likelihood(
-        self,
-        M: np.ndarray,
-        pi: np.ndarray,
-        s: np.ndarray,
-        beta: np.ndarray,
-        term_0_log: np.ndarray,
-        term_1_braces: np.ndarray,
-        d: np.ndarray,
-    ) -> float:
-        """
-        Calculate  likelihood
-        """
-
-        term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
-        assert term_0.shape == (self.T - 1, self.num_cells)
-
-        term_1 = term_1_braces * M
-        assert term_1.shape == (self.T - 1, self.num_cells, self.num_cells)
-
-        # TODO: Is this the best way to handle zeros in log?
-        term_2 = M * (1 - np.log(M + (M == 0)))
-        assert term_2.shape == (self.T - 1, self.num_cells, self.num_cells)
-
-        term_3 = -self.lamda / 2.0 * self.cost(M, self.N)
-        assert type(term_3) == float
-
-        out = 0.0
-        out += term_0.sum(axis=(0, 1))
-        out += term_1[:, self.gamma_exc_indices[0], self.gamma_exc_indices[1]].sum()
-        out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
-        out += term_3
+        out = _likelihood(
+            M,
+            pi,
+            s,
+            beta,
+            term_0_log,
+            term_1_braces,
+            d,
+            self.lamda,
+            self.gamma_indices,
+            self.gamma_exc_indices,
+            self.N,
+        )
 
         return out
 
@@ -373,6 +350,60 @@ class Akagi:
         bounds = list(zip(lower.flatten(), upper_dist.flatten()))
 
         return bounds
+
+
+@numba.jit(nopython=True)
+def _likelihood(
+    M: np.ndarray,
+    pi: np.ndarray,
+    s: np.ndarray,
+    beta: np.ndarray,
+    term_0_log: np.ndarray,
+    term_1_braces: np.ndarray,
+    d: np.ndarray,
+    lamda: float,
+    gamma_indices,
+    gamma_exc_indices,
+    N: np.ndarray,
+) -> float:
+    """
+    Calculate  likelihood
+    """
+
+    T = M.shape[0] + 1
+    num_cells = M.shape[1]
+
+    term_0 = np.repeat(term_0_log, T - 1).reshape(T - 1, num_cells)
+    for i in numba.prange(num_cells):
+        term_0[:, i] *= M[:, i, i]
+    assert term_0.shape == (T - 1, num_cells)
+    term_0_sum = term_0.sum()
+
+    term_1 = term_1_braces * M
+    # assert term_1.shape == (T - 1, num_cells, num_cells)
+    term_1_sum = 0.0
+    for i in numba.prange(gamma_exc_indices[0].shape[0]):
+        term_1_sum += term_1[:, gamma_exc_indices[0][i], gamma_exc_indices[1][i]].sum(
+            axis=0
+        )
+
+    # TODO: Is this the best way to handle zeros in log?
+    term_2 = M * (1 - np.log(M + (M == 0)))
+    # assert term_2.shape == (T - 1, num_cells, num_cells)
+    term_2_sum = 0.0
+    for i in numba.prange(gamma_indices[0].shape[0]):
+        term_2_sum += term_2[:, gamma_indices[0][i], gamma_indices[1][i]].sum(axis=0)
+
+    term_3 = -lamda / 2.0 * _cost(M, N)
+    # assert type(term_3) == float
+
+    out = 0.0
+    out += term_0_sum
+    out += term_1_sum
+    out += term_2_sum
+    out += term_3
+
+    return out
 
 
 @numba.jit(nopython=True, fastmath=True)

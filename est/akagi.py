@@ -140,6 +140,8 @@ class Akagi:
 
         out = np.log(1 - pi)[np.newaxis, ...]
 
+        assert out.shape == (1, self.num_cells)
+
         return out
 
     def term_1_braces(
@@ -157,6 +159,8 @@ class Akagi:
                 np.newaxis, ..., np.newaxis
             ]
         )
+
+        assert out.shape == (1, self.num_cells, self.num_cells)
 
         return out
 

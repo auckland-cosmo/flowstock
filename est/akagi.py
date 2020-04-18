@@ -105,11 +105,29 @@ class Akagi:
         if term_0_log is None:
             term_0_log = self.term_0_log(pi)
 
-        term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
-        assert term_0.shape == (self.T - 1, self.num_cells)
-
         if term_1_braces is None:
             term_1_braces = self.term_1_braces(pi, s, beta, d)
+
+        out = self._likelihood(M, pi, s, beta, term_0_log, term_1_braces, d)
+
+        return out
+
+    def _likelihood(
+        self,
+        M: np.ndarray,
+        pi: np.ndarray,
+        s: np.ndarray,
+        beta: np.ndarray,
+        term_0_log: np.ndarray,
+        term_1_braces: np.ndarray,
+        d: np.ndarray,
+    ) -> float:
+        """
+        Calculate  likelihood
+        """
+
+        term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
+        assert term_0.shape == (self.T - 1, self.num_cells)
 
         term_1 = term_1_braces * M
         assert term_1.shape == (self.T - 1, self.num_cells, self.num_cells)

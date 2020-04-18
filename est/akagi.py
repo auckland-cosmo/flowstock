@@ -100,25 +100,20 @@ class Akagi:
         Calculate  likelihood
         """
 
-        d = self.d
-
         if term_0_log is None:
             term_0_log = self.term_0_log(pi)
+
+        if term_1_braces is None:
+            term_1_braces = self.term_1_braces(pi, s, beta, self.d)
 
         term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
         assert term_0.shape == (self.T - 1, self.num_cells)
 
-        if term_1_braces is None:
-            term_1_braces = self.term_1_braces(pi, s, beta, d)
+        term_1 = _term_1(term_1_braces, M)
 
-        term_1 = term_1_braces * M
-        assert term_1.shape == (self.T - 1, self.num_cells, self.num_cells)
+        term_2 = _term_2(M)
 
-        # TODO: Is this the best way to handle zeros in log?
-        term_2 = M * (1 - np.log(M + (M == 0)))
-        assert term_2.shape == (self.T - 1, self.num_cells, self.num_cells)
-
-        term_3 = -self.lamda / 2.0 * self.cost(M, self.N)
+        term_3 = -self.lamda / 2.0 * _cost(M, self.N)
         assert type(term_3) == float
 
         out = 0.0
@@ -355,6 +350,32 @@ class Akagi:
         bounds = list(zip(lower.flatten(), upper_dist.flatten()))
 
         return bounds
+
+
+@numba.jit(nopython=True)
+def _term_1(term_1_braces: np.ndarray, M: np.ndarray) -> np.ndarray:
+
+    T = M.shape[0] + 1
+    num_cells = M.shape[1]
+
+    out = term_1_braces * M
+    assert out.shape == (T - 1, num_cells, num_cells)
+
+    return out
+
+
+@numba.jit(nopython=True)
+def _term_2(M: np.ndarray) -> np.ndarray:
+
+    T = M.shape[0] + 1
+    num_cells = M.shape[1]
+
+    # TODO: Is this the best way to handle zeros in log?
+    out = M * (1 - np.log(M + (M == 0)))
+
+    assert out.shape == (T - 1, num_cells, num_cells)
+
+    return out
 
 
 @numba.jit(nopython=True, fastmath=True)

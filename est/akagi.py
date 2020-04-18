@@ -251,6 +251,9 @@ class Akagi:
         self.s = s
         self.beta = beta
 
+        assert np.all(np.isfinite(s))
+        assert np.isfinite(beta)
+
         return beta_res.success
 
     def f(self, s, beta):
@@ -282,6 +285,9 @@ class Akagi:
     def C_u(self, s_u, beta_u):
         out = self.B() / self.sexp_term(s_u, beta_u)
         assert out.shape == (self.num_cells,)
+
+        # Fudge: C_u = 0 breaks s = A / C_u
+        out += (out == 0) * 1e-5
 
         return out
 

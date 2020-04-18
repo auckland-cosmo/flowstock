@@ -72,7 +72,9 @@ class Akagi:
 
         return self.M, self.pi, self.s, self.beta
 
-    def neg_likelihood_flat(self, M, pi, s, beta, term_1_braces=None) -> float:
+    def neg_likelihood_flat(
+        self, M, pi, s, beta, term_0_log=None, term_1_braces=None
+    ) -> float:
         """
         Calculate likelihood with flattened M
 
@@ -81,7 +83,9 @@ class Akagi:
 
         M_reshaped = np.reshape(M, self.M.shape)
 
-        return -self.likelihood(M_reshaped, pi, s, beta, term_1_braces=term_1_braces)
+        return -self.likelihood(
+            M_reshaped, pi, s, beta, term_0_log=term_0_log, term_1_braces=term_1_braces
+        )
 
     def likelihood(
         self,
@@ -89,6 +93,7 @@ class Akagi:
         pi: np.ndarray,
         s: np.ndarray,
         beta: np.ndarray,
+        term_0_log: Optional[np.ndarray] = None,
         term_1_braces: Optional[np.ndarray] = None,
     ) -> float:
         """
@@ -97,7 +102,10 @@ class Akagi:
 
         d = self.d
 
-        term_0 = np.log(1 - pi)[np.newaxis, ...] * M.diagonal(axis1=1, axis2=2)
+        if term_0_log is None:
+            term_0_log = self.term_0_log(pi)
+
+        term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
         assert term_0.shape == (self.T - 1, self.num_cells)
 
         if term_1_braces is None:
@@ -127,6 +135,12 @@ class Akagi:
         """
 
         return _cost(M, N)
+
+    def term_0_log(self, pi: np.ndarray) -> np.ndarray:
+
+        out = np.log(1 - pi)[np.newaxis, ...]
+
+        return out
 
     def term_1_braces(
         self, pi: np.ndarray, s: np.ndarray, beta: float, d: np.ndarray
@@ -160,13 +174,14 @@ class Akagi:
 
         bounds = self.M_bound()
 
+        term_0_log = self.term_0_log(self.pi)
         term_1_braces = self.term_1_braces(self.pi, self.s, self.beta, self.d)
 
         result = opt.minimize(
             self.neg_likelihood_flat,
             # Use current M as initial guess
             x0=self.M,
-            args=(self.pi, self.s, self.beta, term_1_braces),
+            args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
             method="L-BFGS-B",
             bounds=bounds,
             options={

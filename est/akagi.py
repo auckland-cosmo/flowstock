@@ -47,13 +47,14 @@ class Akagi:
 
         self.lamda = 1000
 
-    def exact_inference(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    def exact_inference(
+        self, eps: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
         Estimate the movement of people in N and internal parameters
         """
 
         step = 0
-        eps = 1e-5
 
         L = self.likelihood(self.M, self.pi, self.s, self.beta)
         L_old = L * (1 + 0.5)
@@ -61,11 +62,11 @@ class Akagi:
         while abs((L_old - L) / L) > eps:
             print("step # ", step, ", L = ", L)
 
-            self.update_M()
+            self.update_M(eps)
 
             self.update_pi()
 
-            self.update_s_beta()
+            self.update_s_beta(eps)
 
             L_old, L = L, self.likelihood(self.M, self.pi, self.s, self.beta)
             step += 1
@@ -159,7 +160,7 @@ class Akagi:
 
         return out
 
-    def update_M(self) -> bool:
+    def update_M(self, eps: float) -> bool:
         """
         Update M
 
@@ -184,7 +185,7 @@ class Akagi:
             method="L-BFGS-B",
             bounds=bounds,
             options={
-                "ftol": 1e-5,
+                "ftol": eps,
                 # "maxfun": 15_000_000,
             },
         )
@@ -207,7 +208,7 @@ class Akagi:
 
         self.pi = numer / denom
 
-    def update_s_beta(self) -> bool:
+    def update_s_beta(self, eps: float) -> bool:
         """
         Update s and beta iteratively
 
@@ -221,7 +222,7 @@ class Akagi:
         beta = self.beta
 
         step = 0
-        eps = 1e-8
+        eps *= 1e-4
 
         f_new = self.f(s, beta)
         f_old = f_new * (1 + 0.5)

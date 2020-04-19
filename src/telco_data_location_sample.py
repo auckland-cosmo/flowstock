@@ -7,8 +7,8 @@ from typing import List
 
 import pandas as pd  # type: ignore
 
-import distances
-import load_csv
+import distances  # type: ignore
+import load_csv  # type: ignore
 
 
 def parse_args(args):
@@ -55,12 +55,12 @@ def main(argv: List[str]) -> None:
     codes = distances.locations_in_range(centroid_data, int(args.dist), str(args.loc))
 
     print("Filtering telco data by region")
-    telco = pd.read_csv(args.telco_file_name, dtype={"sa2_2018_code": str})
+    telco = load_csv.load_telco_data(args.telco_file_name)
 
     telco = pd.pivot_table(
-        telco[telco["sa2_2018_code"].isin(codes)],
+        telco[telco["region_code"].isin(codes)],
         index="time",
-        columns="sa2_2018_code",
+        columns="region_code",
         values="count",
     )
 

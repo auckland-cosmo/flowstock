@@ -8,7 +8,7 @@ from typing import List
 import geopandas  # type: ignore
 import pandas  # type: ignore
 
-import load_csv  # type: ignore
+from . import load_csv
 
 
 def calculate_distances(df: geopandas.GeoDataFrame) -> pandas.DataFrame:

@@ -99,6 +99,15 @@ class Akagi:
     ) -> float:
         """
         Calculate  likelihood
+
+        Parameters
+        ----------
+
+        term_0_log: Optional[np.ndnarry]
+        term_1_braces: Optional[np.ndnarry]
+            There is the option of caching some terms in the likelihood.  This
+            can speed the algorithm up significantly if used when minimizing
+            with respect to `M`.
         """
 
         if term_0_log is None:

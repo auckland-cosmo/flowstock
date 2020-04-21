@@ -454,7 +454,7 @@ def _term_0_summed(term_0_log: np.ndarray, M: np.ndarray):
     return out
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, fastmath=True)
 def _term_1(term_1_braces: np.ndarray, M: np.ndarray) -> np.ndarray:
 
     T = M.shape[0] + 1
@@ -466,7 +466,7 @@ def _term_1(term_1_braces: np.ndarray, M: np.ndarray) -> np.ndarray:
     return out
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, fastmath=True, parallel=True)
 def _term_2(M: np.ndarray) -> np.ndarray:
 
     T = M.shape[0] + 1
@@ -480,7 +480,7 @@ def _term_2(M: np.ndarray) -> np.ndarray:
     return out
 
 
-@numba.jit(nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True, parallel=True)
 def _cost(M: np.ndarray, N: np.ndarray) -> float:
     term_0 = (np.abs(N[:-1] - M.sum(axis=2)) ** 2).sum()
     term_1 = (np.abs(N[1:] - M.sum(axis=1)) ** 2).sum()

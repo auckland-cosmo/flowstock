@@ -271,6 +271,72 @@ class Akagi:
 
         return beta_res.success
 
+    def update_s_beta_u(self, eps: float) -> bool:
+        """
+        Update s and beta iteratively
+
+        Returns
+        -------
+        bool : True if there were no errors
+               False if there were errors
+        """
+
+        s = self.s
+        beta = self.beta
+
+        s_u = self.s
+        beta_u = self.beta
+
+        step = 0
+        eps *= 1e-4
+
+        f_new = self.f(s, beta)
+        f_old = f_new * (1 + 0.5)
+
+        while abs((f_old - f_new) / f_new) > eps:
+
+            # Update s
+            # Trying to use s_u and beta_u
+            s = self.A() / (
+                self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(-beta_u * self.d)
+            ).sum(where=self.gamma_exc, axis=1)
+
+            # Fudge to force s != 0
+            # Avoids problems with logs of 0 in calculation of f
+            s = s + (s == 0.0) * 1e-5
+
+            # Renormalize s
+            s /= s.max()
+            s_u = s
+
+            # Update beta
+            # Trying to use f_u, s_u and beta_u
+            beta_res = opt.minimize(
+                lambda beta_: -self.f_u(s, beta_, s_u, beta_u),
+                x0=beta_u,
+                method="SLSQP",
+                bounds=[(0, 10)],
+            )
+            try:
+                assert beta_res.success
+                beta = beta_res.x[0]
+                beta_u = beta
+            except AssertionError as err:
+                print("Error maximizing wrt beta")
+                print(err)
+                print(beta_res.message)
+                print("Bashing on regardless")
+                beta = beta_res.x
+                beta_u = beta
+
+            f_old, f_new = f_new, self.f_u(s, beta, s_u, beta_u)
+            step += 1
+
+        self.s = s
+        self.beta = beta
+
+        return beta_res.success
+
     def f(self, s, beta):
         """
         Objective function for Minorization-Maximization Algorith
@@ -283,6 +349,14 @@ class Akagi:
 
         out = (A * np.log(s) - B * np.log(sexp_term)).sum(axis=0) - beta * D
 
+        return out
+
+    def f_u(self, s, beta, s_u, beta_u):
+        A = self.A()
+        C = self.C_u(s_u, beta_u)
+        D = self.D()
+        sexp_term = self.sexp_term(s, beta)
+        out = (A * np.log(s) - C * sexp_term).sum(axis=0) - beta * D
         return out
 
     def A(self):

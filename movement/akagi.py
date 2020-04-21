@@ -107,8 +107,7 @@ class Akagi:
         if term_1_braces is None:
             term_1_braces = self.term_1_braces(pi, s, beta, self.d)
 
-        term_0 = term_0_log * M.diagonal(axis1=1, axis2=2)
-        assert term_0.shape == (self.T - 1, self.num_cells)
+        term_0 = _term_0_summed(term_0_log, M)
 
         term_1 = _term_1(term_1_braces, M)
 
@@ -118,7 +117,7 @@ class Akagi:
         assert type(term_3) == float
 
         out = 0.0
-        out += term_0.sum(axis=(0, 1))
+        out += term_0
         out += term_1[:, self.gamma_exc_indices[0], self.gamma_exc_indices[1]].sum()
         out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
         out += term_3
@@ -425,6 +424,25 @@ class Akagi:
         bounds = list(zip(lower.flatten(), upper_dist.flatten()))
 
         return bounds
+
+
+@numba.jit(nopython=True, fastmath=True, parallel=True)
+def _term_0_summed(term_0_log: np.ndarray, M: np.ndarray):
+
+    T = M.shape[0] + 1
+    num_cells = M.shape[1]
+
+    M_diag = np.zeros((T - 1, num_cells))
+    for t in numba.prange(T - 1):
+        for i in numba.prange(num_cells):
+            M_diag[t, i] = M[t, i, i]
+
+    mult = term_0_log[0] * M_diag
+    assert mult.shape == (T - 1, num_cells)
+
+    out = mult.sum()
+
+    return out
 
 
 @numba.jit(nopython=True)

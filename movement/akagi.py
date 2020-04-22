@@ -1,8 +1,28 @@
+import os
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
+
+
+class SaveOptions:
+    def __init__(self, path="output", period=1, append_time=True):
+
+        self.output_dir = os.path.join(os.getcwd(), "output")
+        self.period = period
+        self.append_time = append_time
+
+    def make_dir(self):
+        if self.append_time:
+            output_dir = os.path.join(os.getcwd(), "output", str(datetime.now()))
+        else:
+            output_dir = os.path.join(os.getcwd(), "output")
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        self.output_dir = output_dir
 
 
 class Akagi:
@@ -11,7 +31,13 @@ class Akagi:
     Use the method of Akagi et al to estimate movement
     """
 
-    def __init__(self, N: np.ndarray, d: np.ndarray, K: float):
+    def __init__(
+        self,
+        N: np.ndarray,
+        d: np.ndarray,
+        K: float,
+        save_options: SaveOptions = SaveOptions(),
+    ):
 
         # array of populations in regions at times
         self.N: np.ndarray = N
@@ -47,12 +73,17 @@ class Akagi:
 
         self.lamda = 1000
 
+        self.save_options = save_options
+
     def exact_inference(
         self, eps: float
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
         Estimate the movement of people in N and internal parameters
         """
+
+        self.save_options.make_dir()
+        self.save_config()
 
         step = 0
 
@@ -68,8 +99,12 @@ class Akagi:
 
             self.update_s_beta(eps)
 
+            self.save_checkpoint(step)
+
             L_old, L = L, self.likelihood(self.M, self.pi, self.s, self.beta)
             step += 1
+
+        self.save_state(step)
 
         return self.M, self.pi, self.s, self.beta
 
@@ -433,6 +468,41 @@ class Akagi:
         bounds = list(zip(lower.flatten(), upper_dist.flatten()))
 
         return bounds
+
+    def save_config(self):
+        """
+        Save configuration details
+        """
+
+        output_dir = self.save_options.output_dir
+
+        np.save(os.path.join(output_dir, "N"), self.N)
+        np.save(os.path.join(output_dir, "d"), self.d)
+        np.save(os.path.join(output_dir, "K"), self.K)
+        np.save(os.path.join(output_dir, "lambda"), self.lamda)
+        np.save(os.path.join(output_dir, "gamma"), self.gamma)
+
+    def save_checkpoint(self, step):
+        """
+        Save checkpoint data if at an appropriate step
+        """
+
+        if step % self.save_options.period == 0:
+            self.save_state(step)
+
+    def save_state(self, step):
+        """
+        Save state regardless of step number
+        """
+
+        output_dir = self.save_options.output_dir
+
+        step_fmt = "_{:05d}".format(step)
+
+        np.save(os.path.join(output_dir, "M" + step_fmt), self.M)
+        np.save(os.path.join(output_dir, "pi" + step_fmt), self.pi)
+        np.save(os.path.join(output_dir, "s" + step_fmt), self.s)
+        np.save(os.path.join(output_dir, "beta" + step_fmt), self.beta)
 
 
 @numba.jit(nopython=True, fastmath=True, parallel=True)

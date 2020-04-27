@@ -76,7 +76,7 @@ class Akagi:
         self.save_options = save_options
 
     def exact_inference(
-        self, eps: float
+        self, eps: float, der: bool
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
         Estimate the movement of people in N and internal parameters
@@ -93,7 +93,7 @@ class Akagi:
         while abs((L_old - L) / L) > eps:
             print("step # ", step, ", L = ", L)
 
-            self.update_M(eps)
+            self.update_M(eps, der)
 
             self.update_pi()
 
@@ -110,7 +110,7 @@ class Akagi:
 
     def neg_likelihood_flat(
         self, M, pi, s, beta, term_0_log=None, term_1_braces=None
-    ) -> float:
+    ) -> np.ndarray:
         """
         Calculate likelihood with flattened M
 
@@ -168,6 +168,72 @@ class Akagi:
 
         return out
 
+    def dLdMlmn_flat(
+        self, M, pi, s, beta, term_0_log=None, term_1_braces=None
+    ) -> float:
+        """
+        Flattening the matix M for derivative. Also, populate the output matrix dL/dMtij for each t,i,j. Needs to be fixed so that the loops areplaced with something pythonic.
+        """
+
+        M_reshaped = np.reshape(M, self.M.shape)
+
+        #This looping here needs to be fixed.
+        Mder= np.zeros((self.T-1, self.num_cells, self.num_cells))
+        for t in range(0,self.T-1):
+            for i in range(0, self.num_cells):
+                for j in range(0, self.num_cells):
+                    Mder[t,i,j]=-self.dLdMlmn(M_reshaped, pi, s, beta, t, i, j, term_0_log=term_0_log, term_1_braces=term_1_braces)
+        return Mder
+
+    def dLdMlmn(
+        self,
+        M: np.ndarray,
+        pi: np.ndarray,
+        s: np.ndarray,
+        beta: np.ndarray,
+        l: int,
+        m: int,
+        n: int,
+        term_0_log: Optional[np.ndarray] = None,
+        term_1_braces: Optional[np.ndarray] = None,
+    ) -> float:
+        """
+        Calculates the derivative of the likelihood function w.r.t to
+        one of the elements Mlmn.
+        """
+
+        ### Do I need this?
+        # if term_0_log is None:
+        #     term_0_log = self.term_0_log(pi)
+        #
+        # if term_1_braces is None:
+        #     term_1_braces = self.term_1_braces(pi, s, beta, self.d)
+
+        out = 0.0
+        #(np.abs(N[:-1] - M.sum(axis=2)) ** 2).sum()
+        #I hope this sums M over the m, and then over n. Test.
+        #Do I need to take special care because non-neighbours should not be
+        #included in the sum? Or will these terms authomatically be zero?
+        #do axes start by counting from zero or 1?
+        term_4 = self.lamda * (self.N[l,m] + self.N[l+1,n] - M[l,:,n].sum()- M[l,m,:].sum())
+
+        # sexp = s[np.newaxis, ...] * np.exp(-beta[0] * d[m,n])
+
+        sexp = s[np.newaxis, ...] * np.exp(-beta * self.d[m,n])
+
+        #if ("terms_are_not_neighbours"):
+            #raise error
+        #else:
+        if(m==n):
+            term_1_3 = np.log(1.0 - pi[m]) - np.log(M[l,m,n])
+            out = term_1_3 + term_4
+        else:
+        #m and n different, but neighbours:
+            term_2_3 = np.log(pi[m]) + np.log(s[n]) - beta * self.d[m,n] - np.log(sexp.sum(axis=1, where=self.gamma_exc))-np.log(M[l,m,n])
+            out = term_2_3 + term_4
+
+        return out
+
     def cost(self, M: np.ndarray, N: np.ndarray) -> float:
         """
         Cost function
@@ -203,7 +269,7 @@ class Akagi:
 
         return out
 
-    def update_M(self, eps: float) -> bool:
+    def update_M(self, eps: float, der: bool) -> bool:
         """
         Update M
 
@@ -220,18 +286,33 @@ class Akagi:
         term_0_log = self.term_0_log(self.pi)
         term_1_braces = self.term_1_braces(self.pi, self.s, self.beta, self.d)
 
-        result = opt.minimize(
-            self.neg_likelihood_flat,
-            # Use current M as initial guess
-            x0=self.M,
-            args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
-            method="L-BFGS-B",
-            bounds=bounds,
-            options={
-                "ftol": eps,
-                # "maxfun": 15_000_000,
-            },
-        )
+        if (der == False):
+            result = opt.minimize(
+                self.neg_likelihood_flat,
+                # Use current M as initial guess
+                x0=self.M,
+                args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
+                method="L-BFGS-B",
+                bounds=bounds,
+                options={
+                    "ftol": eps,
+                    # "maxfun": 15_000_000,
+                },
+            )
+        else:
+            result = opt.minimize(
+                self.neg_likelihood_flat,
+                # Use current M as initial guess
+                x0=self.M,
+                args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
+                method="L-BFGS-B",
+                jac = self.dLdMlmn_flat,
+                bounds=bounds,
+                options={
+                    "ftol": eps,
+                    # "maxfun": 15_000_000,
+                },
+            )
 
         try:
             assert result.success

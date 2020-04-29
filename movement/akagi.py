@@ -312,9 +312,9 @@ class Akagi:
         except AssertionError:
             print("Error minimizing M", result.message)
 
-        print(self.M[1][:10, :10])
+        print(self.M[0][:10, :10])
         self.M = np.reshape(result.x, self.M.shape)
-        print(self.M[1][:10, :10])
+        print(self.M[0][:10, :10])
 
         return result.success
 

@@ -67,9 +67,9 @@ class Akagi:
             np.fill_diagonal(self.M[i], N[i])  # Default to no movement
 
         # Initial guesses for parameters
-        self.pi: np.ndarray = np.ones(num_cells) / 2
-        self.s: np.ndarray = np.ones(num_cells) / 2
-        self.beta: float = 1.0
+        self.pi: np.ndarray = np.ones(num_cells) / 50
+        self.s: np.ndarray = np.ones(num_cells) / 50
+        self.beta: float = 0.1
 
         self.lamda = 1000
 
@@ -92,16 +92,26 @@ class Akagi:
 
         while abs((L_old - L) / L) > eps:
             print("step # ", step, ", L = ", L)
+            print("beta ", self.beta)
+            print("pi ", self.pi)
 
             self.update_M(eps, der)
 
+            print("M done")
+
             self.update_pi()
 
+            print("pi done")
+
             self.update_s_beta(eps)
+
+            print("beta done") 
 
             self.save_checkpoint(step)
 
             L_old, L = L, self.likelihood(self.M, self.pi, self.s, self.beta)
+            
+            
             step += 1
 
         self.save_state(step)
@@ -166,6 +176,9 @@ class Akagi:
         out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
         out += term_3
 
+
+        #added a print statement to return this each time we call it 
+        #print(out) 
         return out
 
     def dLdMlmn_flat(
@@ -301,10 +314,11 @@ class Akagi:
                 method="L-BFGS-B",
                 jac = self.dLdMlmn_flat,
                 bounds=bounds,
-                # options={
-                    # "ftol": eps,
+                options={
+                 "ftol": eps * 1e-1,
+                    # asking for a tighter limit here than in the solver as a whole.
                     # "maxfun": 15_000_000,
-                # },
+                 },
             )
 
         try:

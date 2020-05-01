@@ -103,7 +103,7 @@ class Akagi:
 
             print("pi done")
 
-            self.update_s_beta(eps)
+            self.update_s_beta_u(eps)
 
             print("beta done") 
 
@@ -178,7 +178,7 @@ class Akagi:
 
 
         #added a print statement to return this each time we call it 
-        #print(out) 
+        print("L ",term_3,out) 
         return out
 
     def dLdMlmn_flat(
@@ -326,9 +326,9 @@ class Akagi:
         except AssertionError:
             print("Error minimizing M", result.message)
 
-        print(self.M[0][:10, :10])
+#        print(self.M[0][:10, :10])
         self.M = np.reshape(result.x, self.M.shape)
-        print(self.M[0][:10, :10])
+#        print(self.M[0][:10, :10])
 
         return result.success
 
@@ -380,7 +380,7 @@ class Akagi:
                 lambda beta_: -self.f(self.s, beta_),
                 x0=beta,
                 method="SLSQP",
-                bounds=[(0, 10)],
+                bounds=[(-1, 10)],
             )
             try:
                 assert beta_res.success
@@ -447,7 +447,7 @@ class Akagi:
                 lambda beta_: -self.f_u(s, beta_, s_u, beta_u),
                 x0=beta_u,
                 method="SLSQP",
-                bounds=[(0, 10)],
+                bounds=[(-1, 10)],
             )
             try:
                 assert beta_res.success

@@ -86,6 +86,16 @@ class AreaSubset:
         self.data = self.data[self.data["ta_name"].isin(names)].copy()
         self.reset_index()
 
+    def remove_sa2(self, codes: List[str]):
+        """
+        Filter to only SA2 codes not in `codes`
+
+        Note that the codes should be strings, not integers.
+        """
+
+        self.data = self.data[~self.data["sa2_code"].isin(codes)].copy()
+        self.reset_index()
+
     def reset_index(self):
         self.data.reset_index(inplace=True)
         self.data.drop("index", axis=1, inplace=True)

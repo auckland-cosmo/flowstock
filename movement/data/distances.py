@@ -37,7 +37,7 @@ def remove_furthest_points(
     """
 
     # Find index of desired location
-    center_index_list = df.index[df["region_name"] == loc].tolist()
+    center_index_list = df.index[df["sa2_name"] == loc].tolist()
     assert len(center_index_list) == 1
     center_index = center_index_list[0]
 

@@ -9,13 +9,12 @@ def load_telco_data(path: os.PathLike) -> pd.DataFrame:
     """
     Load telco data from a csv file to a dataframe
 
-    Ignore some columns that don't look too useful and rename the others
+    Rename columns to be consistent with other data sources
     """
 
     dtype_dict = {
-        # "WKT": str,
-        # "region_2018_code": str,
-        # "ta_2018_code": str,
+        "region_2018_code": str,
+        "ta_2018_code": str,
         "sa2_2018_code": str,
         "time": str,
         "count": int,
@@ -25,7 +24,13 @@ def load_telco_data(path: os.PathLike) -> pd.DataFrame:
         path, usecols=dtype_dict.keys(), dtype=dtype_dict, parse_dates=["time"]
     )
 
-    df = df.rename(columns={"sa2_2018_code": "region_code"})
+    df = df.rename(
+        columns={
+            "region_2018_code": "rc_code",
+            "ta_2018_code": "ta_code",
+            "sa2_2018_code": "sa2_code",
+        }
+    )
 
     return df
 
@@ -38,6 +43,8 @@ def load_centroid_data_2018(path: os.PathLike) -> pd.DataFrame:
 
     Assumes that the data's centroid coordinates are in the EPSG:2193 frame.
     """
+
+    rename_dict = {"SA22018_V1_00": "sa2_code", "SA22018_V1_NAME": "sa2_name"}
 
     dtype_dict = {
         "WKT": str,
@@ -55,14 +62,44 @@ def load_centroid_data_2018(path: os.PathLike) -> pd.DataFrame:
 
     df = pd.read_csv(path, usecols=dtype_dict.keys(), dtype=dtype_dict)
 
-    df = df.rename(
-        columns={"SA22018_V1_00": "region_code", "SA22018_V1_NAME": "region_name"}
-    )
+    df = df.rename(columns=rename_dict)
 
     df["centroid"] = df.WKT.apply(wkt.loads)
     df.drop("WKT", axis=1, inplace=True)
 
     df = geopandas.GeoDataFrame(data=df, geometry="centroid", crs="EPSG:2193")
+
+    return df
+
+
+def load_hierarchy_data_2018(path: os.PathLike) -> pd.DataFrame:
+    """
+    Load hierarchical data from a csv file to a GeoDataFrame
+
+    Rename columns to be consistent with other data.
+    """
+
+    rename_dict = {
+        "SA22018_V1_00": "sa2_code",
+        "SA22018_V1_00_NAME": "sa2_name",
+        "REGC2018_V1_00": "rc_code",
+        "REGC2018_V1_00_NAME": "rc_name",
+        "TA2018_V1_00": "ta_code",
+        "TA2018_V1_00_NAME": "ta_name",
+    }
+
+    dtype_dict = {
+        "SA22018_V1_00": str,
+        "SA22018_V1_00_NAME": str,
+        "REGC2018_V1_00": str,
+        "REGC2018_V1_00_NAME": str,
+        "TA2018_V1_00": str,
+        "TA2018_V1_00_NAME": str,
+    }
+
+    df = pd.read_csv(path, usecols=rename_dict.keys(), dtype=dtype_dict)
+
+    df = df.rename(columns=rename_dict)
 
     return df
 
@@ -113,13 +150,3 @@ def load_area_data_2019(path: os.PathLike) -> pd.DataFrame:
     df = pd.read_csv(path, usecols=dtype_dict.keys(), dtype=dtype_dict)
 
     return df
-
-
-def test_load_telco_data():
-
-    load_telco_data("../data/telco/pop_data_2020-04-01.dat")
-
-
-def test_load_area_data_2018():
-
-    load_area_data_2018("../data/area/statistical-area-2-2018-generalised.csv")

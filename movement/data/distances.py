@@ -6,55 +6,130 @@ import sys
 from typing import List
 
 import geopandas  # type: ignore
+import numpy as np  # type: ignore
 import pandas  # type: ignore
 
 from . import load_csv
 
 
-def calculate_distances(df: geopandas.GeoDataFrame) -> pandas.DataFrame:
+class AreaSubset:
     """
-    """
-
-    out = df.copy()
-
-    out.reset_index(inplace=True)
-    out.drop("index", axis=1, inplace=True)
-    out.index.name = "index"
-
-    for i, row in out.iterrows():
-        out[i] = out.distance(row.centroid)
-
-    out.drop("centroid", axis=1, inplace=True)
-
-    return out
-
-
-def remove_furthest_points(
-    df: geopandas.GeoDataFrame, dist: float, loc: str
-) -> geopandas.GeoDataFrame:
-    """
-    Remove points further than `dist` from `loc`, inplace
+    Representation of a subset of all SA2 regions
     """
 
-    # Find index of desired location
-    center_index_list = df.index[df["region_name"] == loc].tolist()
-    assert len(center_index_list) == 1
-    center_index = center_index_list[0]
+    def __init__(
+        self,
+        centroid_file_name="data/area/statistical-area-2-2018-centroid-true.csv",
+        hierarchy_file_name="data/area/statistical-area-2-higher-geographies-2018-generalised.csv",  # noqa
+    ):
+        """
+        Load data for all SA2 regions
 
-    out = df[df.distance(df.loc[center_index]["centroid"]) < dist]
+        Other methods can be used to remove regions by various criteria.
+        """
 
-    return out
+        centroid_data = load_csv.load_centroid_data_2018(centroid_file_name)
+        hierarchy_data = load_csv.load_hierarchy_data_2018(hierarchy_file_name)
 
+        self.data: geopandas.GeoDataFrame = centroid_data.merge(
+            hierarchy_data, on=["sa2_code", "sa2_name"]
+        )
 
-def locations_in_range(
-    centroid_data: geopandas.GeoDataFrame, dist: float, loc: str
-) -> List[str]:
+    def filter_radius(self, loc: str, dist: float,) -> geopandas.GeoDataFrame:
+        """
+        Remove points further than `dist` from `loc`, inplace
+        """
 
-    shrunk = remove_furthest_points(centroid_data, dist, loc)
+        df = self.data
 
-    out = shrunk.region_code.tolist()
+        # Find index of desired location
+        center_index_list = df.index[df["sa2_name"] == loc].tolist()
+        assert len(center_index_list) == 1
 
-    return out
+        center_index = center_index_list[0]
+
+        self.data = df[df.distance(df.loc[center_index]["centroid"]) < dist]
+
+    def filter_rc_code(self, codes: List[str]):
+        """
+        Filter to only regional council codes in `codes`
+
+        Note that the codes should be strings, not integers.
+        """
+
+        self.data = self.data[self.data["rc_code"].isin(codes)].copy()
+        self.reset_index()
+
+    def filter_rc_name(self, names: List[str]):
+        """
+        Filter to only regional council names in `names`
+        """
+
+        self.data = self.data[self.data["rc_name"].isin(names)].copy()
+        self.reset_index()
+
+    def filter_ta_code(self, codes: List[str]):
+        """
+        Filter to only territorial authority codes in `codes`
+
+        Note that the codes should be strings, not integers.
+        """
+
+        self.data = self.data[self.data["ta_code"].isin(codes)].copy()
+        self.reset_index()
+
+    def filter_ta_name(self, names: List[str]):
+        """
+        Filter to only territorial authority names in `names`
+        """
+
+        self.data = self.data[self.data["ta_name"].isin(names)].copy()
+        self.reset_index()
+
+    def remove_sa2(self, codes: List[str]):
+        """
+        Filter to only SA2 codes not in `codes`
+
+        Note that the codes should be strings, not integers.
+        """
+
+        self.data = self.data[~self.data["sa2_code"].isin(codes)].copy()
+        self.reset_index()
+
+    def reset_index(self):
+        self.data.reset_index(inplace=True)
+        self.data.drop("index", axis=1, inplace=True)
+        self.data.index.name = "index"
+
+    def sa2_codes(self) -> List[str]:
+
+        out = self.data.sa2_code.tolist()
+
+        return out
+
+    def sa2_names(self) -> List[str]:
+
+        out = self.data.sa2_name.tolist()
+
+        return out
+
+    def distance_table(self, units="km") -> pandas.DataFrame:
+        """
+        Calculate a table of distances between centroids
+        """
+
+        n = len(self.data.index)
+        out = np.empty((n, n))
+
+        for i, row in self.data.iterrows():
+            out[i] = self.data.distance(row.centroid).astype(float)
+
+        if units == "km":
+            out /= 1000
+        else:
+            raise ValueError("Unknown length unit")
+
+        return out
 
 
 def parse_args(args):
@@ -65,7 +140,12 @@ def parse_args(args):
     parser = argparse.ArgumentParser(args)
 
     parser.add_argument(
-        "file_name", help="A csv file from Stats NZ containing locations of centroids",
+        "centroid_file_name",
+        help="A csv file from Stats NZ containing locations of centroids",
+    )
+    parser.add_argument(
+        "hierarchy_file_name",
+        help="A csv file from Stats NZ containing hierarchical data about SA2 regions",
     )
     parser.add_argument(
         "out", help="Where to write a CSV with output",
@@ -90,14 +170,12 @@ def main(argv: List[str]) -> None:
 
     print("Loading ", args.file_name)
 
-    centroid_data = load_csv.load_centroid_data_2018(args.file_name)
+    areas = AreaSubset(args.centroid_file_name, args.hierarchy_file_name)
 
     if args.d is not None:
-        shrunk = remove_furthest_points(centroid_data, int(args.d[0]), str(args.d[1]))
-    else:
-        shrunk = centroid_data
+        areas.filter_radius(str(args.d[1]), int(args.d[0]))
 
-    distance_table = calculate_distances(shrunk)
+    distance_table = areas.distance_table()
 
     # output save file
     distance_table.to_csv(args.out)

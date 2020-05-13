@@ -105,13 +105,12 @@ class Akagi:
 
             self.update_s_beta_u(eps)
 
-            print("beta done") 
+            print("beta done")
 
             self.save_checkpoint(step)
 
             L_old, L = L, self.likelihood(self.M, self.pi, self.s, self.beta)
-            
-            
+
             step += 1
 
         self.save_state(step)
@@ -176,29 +175,40 @@ class Akagi:
         out += term_2[:, self.gamma_indices[0], self.gamma_indices[1]].sum()
         out += term_3
 
-
-        #added a print statement to return this each time we call it 
-        print("L ",term_3,out) 
+        # added a print statement to return this each time we call it
+        print("L ", term_3, out)
         return out
 
     def dLdMlmn_flat(
         self, M, pi, s, beta, term_0_log=None, term_1_braces=None
     ) -> np.ndarray:
         """
-        Flattening the matix M for derivative. Also, populate the output matrix dL/dMtij for each t,i,j. Needs to be fixed so that the loops areplaced with something pythonic.
+        Flattening the matix M for derivative.
+
+        Also, populate the output matrix dL/dMtij for each t,i,j.
+        Needs to be fixed so that the loops areplaced with something pythonic.
         """
 
         M_reshaped = np.reshape(M, self.M.shape)
 
-        #This looping here needs to be fixed.
-        Mder= np.zeros((self.T-1, self.num_cells, self.num_cells))
-        for t in range(0,self.T-1):
+        # This looping here needs to be fixed.
+        Mder = np.zeros((self.T - 1, self.num_cells, self.num_cells))
+        for t in range(0, self.T - 1):
             for i in range(0, self.num_cells):
                 for j in range(0, self.num_cells):
-                    Mder[t,i,j]=-self.dLdMlmn(M_reshaped, pi, s, beta, t, i, j, term_0_log=term_0_log, term_1_braces=term_1_braces)
+                    Mder[t, i, j] = -self.dLdMlmn(
+                        M_reshaped,
+                        pi,
+                        s,
+                        beta,
+                        t,
+                        i,
+                        j,
+                        term_0_log=term_0_log,
+                        term_1_braces=term_1_braces,
+                    )
         # return np.array(Mder) # to ouptut a matrix of gradients
-        return np.reshape(Mder, (self.T-1)*self.num_cells**2)
-
+        return np.reshape(Mder, (self.T - 1) * self.num_cells ** 2)
 
     def dLdMlmn(
         self,
@@ -216,24 +226,31 @@ class Akagi:
         Calculates the derivative of the likelihood function w.r.t to
         one of the elements Mlmn.
         """
-        
+
         out = 0.0
 
-        term_4 = self.lamda * (self.N[l,m] + self.N[l+1,n] - M[l,:,n].sum()- M[l,m,:].sum())
+        term_4 = self.lamda * (
+            self.N[l, m] + self.N[l + 1, n] - M[l, :, n].sum() - M[l, m, :].sum()
+        )
 
-        ### we need to be careful with this logarithm if Mtij is zero
-        term_3= - np.log(M[l,m,n]+ (M[l,m,n] == 0))
+        # we need to be careful with this logarithm if Mtij is zero
+        term_3 = -np.log(M[l, m, n] + (M[l, m, n] == 0))
 
-        sexp = s[np.newaxis, ...] * np.exp(-beta * self.d[m,n])
+        sexp = s[np.newaxis, ...] * np.exp(-beta * self.d[m, n])
 
         # check if these terms are neighbours:
-        if (self.gamma[m, n] == True):
-            if(m==n):
-                term_1= np.log(1.0 - pi[m])
+        if self.gamma[m, n] is True:
+            if m == n:
+                term_1 = np.log(1.0 - pi[m])
                 out = term_1 + term_3 + term_4
             else:
-            #m and n different, but neighbours:
-                term_2 = np.log(pi[m]) + np.log(s[n]) - beta * self.d[m,n] - np.log(sexp.sum(axis=1, where=self.gamma_exc))
+                # m and n different, but neighbours:
+                term_2 = (
+                    np.log(pi[m])
+                    + np.log(s[n])
+                    - beta * self.d[m, n]
+                    - np.log(sexp.sum(axis=1, where=self.gamma_exc))
+                )
                 out = term_2 + term_3 + term_4
         else:
             out = 0.0
@@ -292,7 +309,7 @@ class Akagi:
         term_0_log = self.term_0_log(self.pi)
         term_1_braces = self.term_1_braces(self.pi, self.s, self.beta, self.d)
 
-        if (der == False):
+        if der is False:
             result = opt.minimize(
                 self.neg_likelihood_flat,
                 # Use current M as initial guess
@@ -312,13 +329,13 @@ class Akagi:
                 x0=self.M,
                 args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
                 method="L-BFGS-B",
-                jac = self.dLdMlmn_flat,
+                jac=self.dLdMlmn_flat,
                 bounds=bounds,
                 options={
-                 "ftol": eps * 1e-1,
+                    "ftol": eps * 1e-1,
                     # asking for a tighter limit here than in the solver as a whole.
                     # "maxfun": 15_000_000,
-                 },
+                },
             )
 
         try:
@@ -326,9 +343,9 @@ class Akagi:
         except AssertionError:
             print("Error minimizing M", result.message)
 
-#        print(self.M[0][:10, :10])
+        # print(self.M[0][:10, :10])
         self.M = np.reshape(result.x, self.M.shape)
-#        print(self.M[0][:10, :10])
+        # print(self.M[0][:10, :10])
 
         return result.success
 

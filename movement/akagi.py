@@ -69,7 +69,8 @@ class Akagi:
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 50
         self.s: np.ndarray = np.ones(num_cells) / 50
-        self.beta: np.ndarray = np.array([0.1])
+        self.beta: np.ndarray = np.array([0.1, 0.1])
+        self.beta_bounds = [(-1, 10), (-1, 1)]
 
         self.lamda = 1000
 
@@ -397,7 +398,7 @@ class Akagi:
                 lambda beta_: -self.f(self.s, beta_),
                 x0=beta,
                 method="SLSQP",
-                bounds=[(-1, 10)],
+                bounds=self.beta_bounds,
             )
             try:
                 assert beta_res.success
@@ -467,7 +468,7 @@ class Akagi:
                 lambda beta_: -self.f_u(s, beta_, s_u, beta_u),
                 x0=beta_u,
                 method="SLSQP",
-                bounds=[(-1, 10)],
+                bounds=self.beta_bounds,
             )
             try:
                 assert beta_res.success
@@ -558,8 +559,8 @@ class Akagi:
         Calculate the exponent in the distance-based probability
         """
 
-        out = -beta[0] * self.d
-        # out = -(beta[0] * self.d + beta[1] * self.d**2)
+        # out = -beta[0] * self.d
+        out = -(beta[0] * self.d + beta[1] * self.d ** 2)
 
         return out
 

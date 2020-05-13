@@ -375,8 +375,8 @@ class Akagi:
         eps *= 1e-4
 
         f_new = self.f(s, beta)
-        f_old = f_new * (1 + 0.5)
-        while abs((f_old - f_new) / f_new) > eps:
+
+        while True:
 
             # Update s
             # The paper says to use s_u and beta_u, I didn't
@@ -410,6 +410,10 @@ class Akagi:
                 beta = beta_res.x
 
             f_old, f_new = f_new, self.f(s, beta)
+
+            if not abs((f_old - f_new) / f_new) > eps:
+                break
+
             step += 1
 
         self.s = s
@@ -440,9 +444,8 @@ class Akagi:
         eps *= 1e-4
 
         f_new = self.f(s, beta)
-        f_old = f_new * (1 + 0.5)
 
-        while abs((f_old - f_new) / f_new) > eps:
+        while True:
 
             # Update s
             # Trying to use s_u and beta_u
@@ -479,6 +482,10 @@ class Akagi:
                 beta_u = beta
 
             f_old, f_new = f_new, self.f_u(s, beta, s_u, beta_u)
+
+            if not abs((f_old - f_new) / f_new) > eps:
+                break
+
             step += 1
 
         self.s = s

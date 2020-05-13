@@ -236,7 +236,7 @@ class Akagi:
         # we need to be careful with this logarithm if Mtij is zero
         term_3 = -np.log(M[l, m, n] + (M[l, m, n] == 0))
 
-        sexp = s[np.newaxis, ...] * np.exp(-beta * self.d[m, n])
+        sexp = s[np.newaxis, ...] * np.exp(self.exponent(beta)[m, n])
 
         # check if these terms are neighbours:
         if self.gamma[m, n] is True:
@@ -248,7 +248,7 @@ class Akagi:
                 term_2 = (
                     np.log(pi[m])
                     + np.log(s[n])
-                    - beta * self.d[m, n]
+                    + self.exponent(beta)[m, n]
                     - np.log(sexp.sum(axis=1, where=self.gamma_exc))
                 )
                 out = term_2 + term_3 + term_4
@@ -276,13 +276,13 @@ class Akagi:
         self, pi: np.ndarray, s: np.ndarray, beta: float, d: np.ndarray
     ) -> np.ndarray:
 
-        sexp = s[np.newaxis, ...] * np.exp(-beta * d)
+        sexp = s[np.newaxis, ...] * np.exp(self.exponent(beta))
 
         out = (
             # TODO: Handle 0 in log
             np.log((pi + (pi == 0))[np.newaxis, ..., np.newaxis])
             + np.log(s[np.newaxis, np.newaxis, ...])
-            - beta * d[np.newaxis, ...]
+            + self.exponent(beta)[np.newaxis, ...]
             - np.log(sexp.sum(axis=1, where=self.gamma_exc))[
                 np.newaxis, ..., np.newaxis
             ]
@@ -381,7 +381,7 @@ class Akagi:
             # Update s
             # The paper says to use s_u and beta_u, I didn't
             s = self.A() / (
-                self.C_u(s, beta)[..., np.newaxis] * np.exp(-beta * self.d)
+                self.C_u(s, beta)[..., np.newaxis] * np.exp(self.exponent(beta))
             ).sum(where=self.gamma_exc, axis=1)
 
             # Fudge to force s != 0
@@ -450,7 +450,7 @@ class Akagi:
             # Update s
             # Trying to use s_u and beta_u
             s = self.A() / (
-                self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(-beta_u * self.d)
+                self.C_u(s_u, beta_u)[..., np.newaxis] * np.exp(self.exponent(beta_u))
             ).sum(where=self.gamma_exc, axis=1)
 
             # Fudge to force s != 0
@@ -493,26 +493,35 @@ class Akagi:
 
         return beta_res.success
 
-    def f(self, s, beta):
+    def f(self, s, beta) -> float:
         """
         Objective function for Minorization-Maximization Algorith
         """
 
         A = self.A()
         B = self.B()
-        D = self.D()
+        beta_D = (
+            (self.exponent(beta)[np.newaxis, ...] * self.M)
+            .sum(where=self.gamma_exc, axis=2)
+            .sum(axis=(0, 1))
+        )
         sexp_term = self.sexp_term(s, beta)
 
-        out = (A * np.log(s) - B * np.log(sexp_term)).sum(axis=0) - beta * D
+        out = (A * np.log(s) - B * np.log(sexp_term)).sum(axis=0) + beta_D
 
         return out
 
-    def f_u(self, s, beta, s_u, beta_u):
+    def f_u(self, s, beta, s_u, beta_u) -> float:
         A = self.A()
         C = self.C_u(s_u, beta_u)
-        D = self.D()
+        beta_D = (
+            (self.exponent(beta)[np.newaxis, ...] * self.M)
+            .sum(where=self.gamma_exc, axis=2)
+            .sum(axis=(0, 1))
+        )
         sexp_term = self.sexp_term(s, beta)
-        out = (A * np.log(s) - C * sexp_term).sum(axis=0) - beta * D
+
+        out = (A * np.log(s) - C * sexp_term).sum(axis=0) + beta_D
         return out
 
     def A(self):
@@ -536,21 +545,22 @@ class Akagi:
 
         return out
 
-    def D(self):
-        out = (
-            (self.M * self.d[np.newaxis, ...])
-            .sum(where=self.gamma_exc, axis=2)
-            .sum(axis=(0, 1))
-        )
-        assert out.shape == ()
-
-        return out
-
     def sexp_term(self, s, beta):
-        out = (s[np.newaxis, ...] * np.exp(-beta * self.d)).sum(
+        out = (s[np.newaxis, ...] * np.exp(self.exponent(beta))).sum(
             where=self.gamma_exc, axis=1
         )
         assert out.shape == (self.num_cells,)
+
+        return out
+
+    def exponent(self, beta):
+        """
+        Calculate the exponent in the distance-based probability
+        """
+
+        out = -beta * self.d
+        # out = -beta[0] * self.d
+        # out = -beta[0] * self.d + beta[1] * self.d**2
 
         return out
 

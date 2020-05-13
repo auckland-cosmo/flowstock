@@ -69,7 +69,7 @@ class Akagi:
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 50
         self.s: np.ndarray = np.ones(num_cells) / 50
-        self.beta: float = 0.1
+        self.beta: np.ndarray = np.array([0.1])
 
         self.lamda = 1000
 
@@ -401,7 +401,7 @@ class Akagi:
             )
             try:
                 assert beta_res.success
-                beta = beta_res.x[0]
+                beta = beta_res.x
             except AssertionError as err:
                 print("Error maximizing wrt beta")
                 print(err)
@@ -471,7 +471,7 @@ class Akagi:
             )
             try:
                 assert beta_res.success
-                beta = beta_res.x[0]
+                beta = beta_res.x
                 beta_u = beta
             except AssertionError as err:
                 print("Error maximizing wrt beta")
@@ -558,9 +558,8 @@ class Akagi:
         Calculate the exponent in the distance-based probability
         """
 
-        out = -beta * self.d
-        # out = -beta[0] * self.d
-        # out = -beta[0] * self.d + beta[1] * self.d**2
+        out = -beta[0] * self.d
+        # out = -(beta[0] * self.d + beta[1] * self.d**2)
 
         return out
 

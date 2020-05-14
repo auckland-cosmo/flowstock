@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import numba  # type: ignore
 import numpy as np  # type: ignore
@@ -77,7 +77,7 @@ class Akagi:
         self.save_options = save_options
 
     def exact_inference(
-        self, eps: float, der: bool
+        self, eps: float, use_derivative: bool = True
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
         Estimate the movement of people in N and internal parameters
@@ -96,7 +96,7 @@ class Akagi:
             print("beta ", self.beta)
             print("pi ", self.pi)
 
-            self.update_M(eps, der)
+            self.update_M(eps, use_derivative)
 
             print("M done")
 
@@ -293,7 +293,7 @@ class Akagi:
 
         return out
 
-    def update_M(self, eps: float, der: bool) -> bool:
+    def update_M(self, eps: float, use_derivative: bool) -> bool:
         """
         Update M
 
@@ -310,34 +310,26 @@ class Akagi:
         term_0_log = self.term_0_log(self.pi)
         term_1_braces = self.term_1_braces(self.pi, self.s, self.beta, self.d)
 
-        if der is False:
-            result = opt.minimize(
-                self.neg_likelihood_flat,
-                # Use current M as initial guess
-                x0=self.M,
-                args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
-                method="L-BFGS-B",
-                bounds=bounds,
-                options={
-                    "ftol": eps,
-                    # "maxfun": 15_000_000,
-                },
-            )
+        jac: Optional[Callable]
+        if use_derivative:
+            jac = self.dLdMlmn_flat
         else:
-            result = opt.minimize(
-                self.neg_likelihood_flat,
-                # Use current M as initial guess
-                x0=self.M,
-                args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
-                method="L-BFGS-B",
-                jac=self.dLdMlmn_flat,
-                bounds=bounds,
-                options={
-                    "ftol": eps * 1e-1,
-                    # asking for a tighter limit here than in the solver as a whole.
-                    # "maxfun": 15_000_000,
-                },
-            )
+            jac = None
+
+        result = opt.minimize(
+            self.neg_likelihood_flat,
+            # Use current M as initial guess
+            x0=self.M,
+            args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
+            method="L-BFGS-B",
+            jac=jac,
+            bounds=bounds,
+            options={
+                "ftol": eps * 1e-1,
+                # asking for a tighter limit here than in the solver as a whole.
+                # "maxfun": 15_000_000,
+            },
+        )
 
         try:
             assert result.success

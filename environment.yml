@@ -12,7 +12,7 @@ dependencies:
   - seaborn
 
   # Development
-  - pre-commit
+  - pre-commit=2.3.0
   - black
   - isort
   - flake8

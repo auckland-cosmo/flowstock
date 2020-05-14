@@ -45,6 +45,13 @@ class Akagi:
         # array of distances
         self.d: np.ndarray = d
 
+        try:
+            assert self.d.shape[0] == self.d.shape[1]
+            assert self.N.shape[1] == self.d.shape[0]
+        except AssertionError as err:
+            print("Shapes of N and d are inconsistent")
+            raise err
+
         self.T: int = N.shape[0]
         num_cells = N.shape[1]
         self.num_cells: int = num_cells

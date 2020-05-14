@@ -89,9 +89,8 @@ class Akagi:
         step = 0
 
         L = self.likelihood(self.M, self.pi, self.s, self.beta)
-        L_old = L * (1 + 0.5)
 
-        while abs((L_old - L) / L) > eps:
+        while True:
             print("step # ", step, ", L = ", L)
             print("beta ", self.beta)
             print("pi ", self.pi)
@@ -113,6 +112,9 @@ class Akagi:
             L_old, L = L, self.likelihood(self.M, self.pi, self.s, self.beta)
 
             step += 1
+
+            if abs((L_old - L) / L) < eps:
+                break
 
         self.save_state(step)
 
@@ -404,7 +406,7 @@ class Akagi:
 
             f_old, f_new = f_new, self.f(s, beta)
 
-            if not abs((f_old - f_new) / f_new) > eps:
+            if abs((f_old - f_new) / f_new) < eps:
                 break
 
             step += 1
@@ -476,7 +478,7 @@ class Akagi:
 
             f_old, f_new = f_new, self.f_u(s, beta, s_u, beta_u)
 
-            if not abs((f_old - f_new) / f_new) > eps:
+            if abs((f_old - f_new) / f_new) < eps:
                 break
 
             step += 1

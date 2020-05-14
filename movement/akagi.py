@@ -240,7 +240,7 @@ class Akagi:
         sexp = s[np.newaxis, ...] * np.exp(self.exponent(beta)[m, n])
 
         # check if these terms are neighbours:
-        if self.gamma[m, n] is True:
+        if self.gamma[m, n]:
             if m == n:
                 term_1 = np.log(1.0 - pi[m])
                 out = term_1 + term_3 + term_4

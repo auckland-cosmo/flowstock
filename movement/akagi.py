@@ -78,7 +78,6 @@ class Akagi:
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 50
         self.s: np.ndarray = np.ones(num_cells) / 50
-        self.beta: np.ndarray = np.array([0.1, 0.1])
 
         # Set bounds  on linear term in exponential as if we expect beta_0 * d ~ O(1)
         min_beta_0 = -1 / d.max() * 10
@@ -95,6 +94,9 @@ class Akagi:
         else:
             min_beta_1 = 0.0
             max_beta_1 = 0.0
+
+        # Initialise beta to be within bounds but prefer positive
+        self.beta: np.ndarray = np.array([(0 + max_beta_0) / 2, (0 + max_beta_1) / 2])
 
         self.beta_bounds = [(min_beta_0, max_beta_0), (min_beta_1, max_beta_1)]
 
@@ -579,8 +581,8 @@ class Akagi:
         Calculate the exponent in the distance-based probability
         """
 
-        # out = -beta[0] * self.d
-        out = -(beta[0] * self.d + beta[1] * self.d ** 2)
+        out = -beta[0] * self.d
+        # out = -(beta[0] * self.d + beta[1] * self.d ** 2)
 
         return out
 

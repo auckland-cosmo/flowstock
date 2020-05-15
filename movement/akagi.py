@@ -110,7 +110,7 @@ class Akagi:
 
             print("pi done")
 
-            self.update_s_beta_u(eps)
+            self.update_s_beta(eps)
 
             print("beta done")
 
@@ -422,7 +422,7 @@ class Akagi:
         self.beta = beta
 
         assert np.all(np.isfinite(s))
-        assert np.isfinite(beta)
+        assert np.all(np.isfinite(beta))
 
         return beta_res.success
 

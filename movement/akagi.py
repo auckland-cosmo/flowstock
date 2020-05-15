@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
@@ -77,7 +78,20 @@ class Akagi:
         self.pi: np.ndarray = np.ones(num_cells) / 50
         self.s: np.ndarray = np.ones(num_cells) / 50
         self.beta: np.ndarray = np.array([0.1, 0.1])
-        self.beta_bounds = [(-1, 10), (-1, 1)]
+
+        # Set bounds  on linear term in exponential as if we expect beta_0 * d ~ O(1)
+        min_beta_0 = -1 / d.max() * 10
+        max_beta_0 = +1 / d.max() * 10
+
+        # Set bounds on d^2 so that exponential shound't overflow or underflow
+        min_beta_1 = (
+            -np.log(sys.float_info.max) / d.max() ** 2 - min_beta_0 / d.max()
+        ) / 100
+        max_beta_1 = (
+            -np.log(sys.float_info.epsilon) / d.max() ** 2 - max_beta_0 / d.max()
+        ) / 100
+
+        self.beta_bounds = [(min_beta_0, max_beta_0), (min_beta_1, max_beta_1)]
 
         self.lamda = 1000
 

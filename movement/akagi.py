@@ -38,6 +38,7 @@ class Akagi:
         d: np.ndarray,
         K: float,
         save_options: SaveOptions = SaveOptions(),
+        nonlinear_beta: bool = False,
     ):
 
         # array of populations in regions at times
@@ -83,13 +84,17 @@ class Akagi:
         min_beta_0 = -1 / d.max() * 10
         max_beta_0 = +1 / d.max() * 10
 
-        # Set bounds on d^2 so that exponential shound't overflow or underflow
-        min_beta_1 = (
-            -np.log(sys.float_info.max) / d.max() ** 2 - min_beta_0 / d.max()
-        ) / 100
-        max_beta_1 = (
-            -np.log(sys.float_info.epsilon) / d.max() ** 2 - max_beta_0 / d.max()
-        ) / 100
+        if nonlinear_beta:
+            # Set bounds on d^2 so that exponential shound't overflow or underflow
+            min_beta_1 = (
+                -np.log(sys.float_info.max) / d.max() ** 2 - min_beta_0 / d.max()
+            ) / 100
+            max_beta_1 = (
+                -np.log(sys.float_info.epsilon) / d.max() ** 2 - max_beta_0 / d.max()
+            ) / 100
+        else:
+            min_beta_1 = 0.0
+            max_beta_1 = 0.0
 
         self.beta_bounds = [(min_beta_0, max_beta_0), (min_beta_1, max_beta_1)]
 

@@ -34,6 +34,7 @@ class AreaSubset:
         self.data: geopandas.GeoDataFrame = centroid_data.merge(
             hierarchy_data, on=["sa2_code", "sa2_name"]
         )
+        self.reset_index()
 
     def filter_radius(self, loc: str, dist: float,) -> geopandas.GeoDataFrame:
         """
@@ -98,6 +99,7 @@ class AreaSubset:
 
     def reset_index(self):
         self.data.reset_index(inplace=True)
+        self.data.sort_values(by="sa2_code", inplace=True)
         self.data.drop("index", axis=1, inplace=True)
         self.data.index.name = "index"
 

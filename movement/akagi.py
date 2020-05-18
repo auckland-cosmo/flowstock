@@ -82,8 +82,8 @@ class Akagi:
         self.s: np.ndarray = np.ones(num_cells) / 50
 
         # Set bounds  on linear term in exponential as if we expect beta_0 * d ~ O(1)
-        min_beta_0 = -1 / d.max() * 10
-        max_beta_0 = +1 / d.max() * 10
+        min_beta_0 = -1 / d.max() * 100
+        max_beta_0 = +1 / d.max() * 100
 
         if nonlinear_beta:
             # Set bounds on d^2 so that exponential shound't overflow or underflow

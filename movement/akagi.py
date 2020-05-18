@@ -44,10 +44,10 @@ class Akagi:
     ):
 
         # array of populations in regions at times
-        self.N: np.ndarray = N
+        self.N: np.ndarray = N.copy(order="C")
 
         # array of distances
-        self.d: np.ndarray = d
+        self.d: np.ndarray = d.copy(order="C")
 
         try:
             assert self.d.shape[0] == self.d.shape[1]

@@ -17,7 +17,9 @@ class SaveOptions:
 
     def make_dir(self):
         if self.append_time:
-            output_dir = os.path.join(os.getcwd(), "output", str(datetime.now()))
+            output_dir = os.path.join(
+                os.getcwd(), "output", str(datetime.now()).replace(" ", "_")
+            )
         else:
             output_dir = os.path.join(os.getcwd(), "output")
 

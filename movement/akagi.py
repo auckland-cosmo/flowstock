@@ -212,7 +212,7 @@ class Akagi:
         print("L ", term_3, out)
         return out
 
-    def dLdMlmn_flat(
+    def neg_dLdMlmn_flat(
         self, M, pi, s, beta, term_0_log=None, term_1_braces=None
     ) -> np.ndarray:
         """
@@ -222,25 +222,16 @@ class Akagi:
         Needs to be fixed so that the loops areplaced with something pythonic.
         """
 
+        if term_0_log is None:
+            term_0_log = self.term_0_log(pi)
+
+        if term_1_braces is None:
+            term_1_braces = self.term_1_braces(pi, s, beta, self.d)
+
         M_reshaped = np.reshape(M, self.M.shape)
 
-        # This looping here needs to be fixed.
-        Mder = np.zeros((self.T - 1, self.num_cells, self.num_cells))
-        for t in range(0, self.T - 1):
-            for i in range(0, self.num_cells):
-                for j in range(0, self.num_cells):
-                    Mder[t, i, j] = -self.dLdMlmn(
-                        M_reshaped,
-                        pi,
-                        s,
-                        beta,
-                        t,
-                        i,
-                        j,
-                        term_0_log=term_0_log,
-                        term_1_braces=term_1_braces,
-                    )
-        # return np.array(Mder) # to ouptut a matrix of gradients
+        Mder = -self.dLdMlmn(M_reshaped, pi, s, beta, term_0_log, term_1_braces)
+
         return np.reshape(Mder, (self.T - 1) * self.num_cells ** 2)
 
     def dLdMlmn(
@@ -249,44 +240,37 @@ class Akagi:
         pi: np.ndarray,
         s: np.ndarray,
         beta: np.ndarray,
-        l: int,
-        m: int,
-        n: int,
-        term_0_log: Optional[np.ndarray] = None,
-        term_1_braces: Optional[np.ndarray] = None,
-    ) -> float:
+        term_0_log: np.array,
+        term_1_braces: np.ndarray,
+    ) -> np.ndarray:
         """
         Calculates the derivative of the likelihood function w.r.t to
         one of the elements Mlmn.
         """
 
-        out = 0.0
+        term_1 = term_0_log
 
-        term_4 = self.lamda * (
-            self.N[l, m] + self.N[l + 1, n] - M[l, :, n].sum() - M[l, m, :].sum()
-        )
+        term_2 = term_1_braces
 
+        # Fudge
         # we need to be careful with this logarithm if Mtij is zero
-        term_3 = -np.log(M[l, m, n] + (M[l, m, n] == 0))
+        term_3 = -np.log(M + (M == 0))
 
-        sexp = s * np.exp(self.exponent(beta)[m, :])
+        term_4 = self.lamda * (self.N[:-1] + self.N[1:] - M.sum(axis=1) - M.sum(axis=2))
 
-        # check if these terms are neighbours:
-        if self.gamma[m, n]:
-            if m == n:
-                term_1 = np.log(1.0 - pi[m])
-                out = term_1 + term_3 + term_4
-            else:
-                # m and n different, but neighbours:
-                term_2 = (
-                    np.log(pi[m])
-                    + np.log(s[n])
-                    + self.exponent(beta)[m, n]
-                    - np.log(sexp.sum(axis=0, where=self.gamma_exc[m, :]))
-                )
-                out = term_2 + term_3 + term_4
-        else:
-            out = 0.0
+        term_3_4 = term_3 + term_4
+
+        out = np.select(
+            [
+                self.gamma_exc,  # in gamma but not m==n; short circuits to avoid m==n
+                self.gamma,  # m == n
+            ],
+            [
+                term_2 + term_3_4,  # value when m is in gamma but not m==n
+                term_1 + term_3_4,  # m==n
+            ],
+            default=0.0,
+        )
 
         return out
 
@@ -344,7 +328,7 @@ class Akagi:
 
         jac: Optional[Callable]
         if use_derivative:
-            jac = self.dLdMlmn_flat
+            jac = self.neg_dLdMlmn_flat
         else:
             jac = None
 

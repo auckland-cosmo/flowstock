@@ -389,7 +389,8 @@ class Akagi:
         step = 0
         eps *= 1e-4
 
-        f_new = self.f(s, beta)
+        f_0 = self.f(s, beta)
+        f_1 = self.f(s, beta)
 
         while True:
 
@@ -417,19 +418,26 @@ class Akagi:
             try:
                 assert beta_res.success
                 beta = beta_res.x
+                success = beta_res.success
             except AssertionError as err:
                 print("Error maximizing wrt beta")
                 print(err)
                 print(beta_res.message)
                 print("Bashing on regardless")
                 beta = beta_res.x
+                success = beta_res.success
 
-            f_old, f_new = f_new, self.f(s, beta)
+            f_2, f_1, f_0 = f_1, f_0, self.f(s, beta)
 
-            if abs((f_old - f_new) / f_new) < eps:
+            if abs(f_1 - f_0) <= eps * abs(f_0):
                 break
 
             step += 1
+
+            # Check for cycles
+            if step > 10_000 and abs(f_0 - f_1) > abs(f_0 - f_2):
+                success = False
+                break
 
         self.s = s
         self.beta = beta
@@ -437,7 +445,7 @@ class Akagi:
         assert np.all(np.isfinite(s))
         assert np.all(np.isfinite(beta))
 
-        return beta_res.success
+        return success
 
     def update_s_beta_u(self, eps: float) -> bool:
         """

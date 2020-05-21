@@ -256,7 +256,10 @@ class Akagi:
         # we need to be careful with this logarithm if Mtij is zero
         term_3 = -np.log(M + (M == 0))
 
-        term_4 = self.lamda * (self.N[:-1] + self.N[1:] - M.sum(axis=1) - M.sum(axis=2))
+        term_4 = self.lamda * (
+            (self.N[:-1] - M.sum(axis=2))[..., np.newaxis]
+            + (self.N[1:] - M.sum(axis=1))[:, np.newaxis, :]
+        )
 
         term_3_4 = term_3 + term_4
 

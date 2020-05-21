@@ -7,6 +7,8 @@ import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
 
+FUDGE = 1e-9
+
 
 class SaveOptions:
     def __init__(self, path="output", period=1, append_time=True):
@@ -286,7 +288,8 @@ class Akagi:
 
     def term_0_log(self, pi: np.ndarray) -> np.ndarray:
 
-        out = np.log(1 - pi)[np.newaxis, ...]
+        # Fudge at pi == 1
+        out = np.log(1 - pi + np.isclose(pi, 1) * FUDGE)[np.newaxis, ...]
 
         assert out.shape == (1, self.num_cells)
 

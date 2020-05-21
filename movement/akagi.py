@@ -127,16 +127,13 @@ class Akagi:
             print("beta ", self.beta)
             print("pi ", self.pi)
 
-            self.update_M(eps, use_derivative)
-
+            success_M = self.update_M(eps, use_derivative)
             print("M done")
 
             self.update_pi()
-
             print("pi done")
 
-            self.update_s_beta(eps)
-
+            success_s_beta = self.update_s_beta(eps)
             print("beta done")
 
             self.save_checkpoint(step)
@@ -145,7 +142,7 @@ class Akagi:
 
             step += 1
 
-            if abs((L_old - L) / L) < eps:
+            if abs((L_old - L) / L) < eps and success_M and success_s_beta:
                 break
 
         self.save_state(step)

@@ -269,7 +269,7 @@ class Akagi:
         # we need to be careful with this logarithm if Mtij is zero
         term_3 = -np.log(M[l, m, n] + (M[l, m, n] == 0))
 
-        sexp = s[np.newaxis, ...] * np.exp(self.exponent(beta)[m, n])
+        sexp = s * np.exp(self.exponent(beta)[m, :])
 
         # check if these terms are neighbours:
         if self.gamma[m, n]:
@@ -282,7 +282,7 @@ class Akagi:
                     np.log(pi[m])
                     + np.log(s[n])
                     + self.exponent(beta)[m, n]
-                    - np.log(sexp.sum(axis=1, where=self.gamma_exc))
+                    - np.log(sexp.sum(axis=0, where=self.gamma_exc[m, :]))
                 )
                 out = term_2 + term_3 + term_4
         else:

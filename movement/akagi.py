@@ -237,9 +237,10 @@ class Akagi:
 
         term_2 = term_1_braces
 
-        # Fudge
-        # we need to be careful with this logarithm if Mtij is zero
-        term_3 = -np.log(M + (M == 0))
+        # We need to be careful with this logarithm if Mtij is zero
+        # This fudge applies to entries in M that should be identically 0, but
+        # they aren't used in the select
+        term_3 = -np.log(M + np.isclose(M, 0) * FUDGE)
 
         term_4 = self.lamda * (
             (self.N[:-1] - M.sum(axis=2))[..., np.newaxis]

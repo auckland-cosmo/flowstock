@@ -1,5 +1,4 @@
 import os
-import sys
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
@@ -87,22 +86,9 @@ class Akagi:
         min_beta_0 = -1 / d.max() * 100
         max_beta_0 = +1 / d.max() * 100
 
-        if nonlinear_beta:
-            # Set bounds on d^2 so that exponential shound't overflow or underflow
-            min_beta_1 = (
-                -np.log(sys.float_info.max) / d.max() ** 2 - min_beta_0 / d.max()
-            ) / 100
-            max_beta_1 = (
-                -np.log(sys.float_info.epsilon) / d.max() ** 2 - max_beta_0 / d.max()
-            ) / 100
-        else:
-            min_beta_1 = 0.0
-            max_beta_1 = 0.0
-
         # Initialise beta to be within bounds but prefer positive
-        self.beta: np.ndarray = np.array([(0 + max_beta_0) / 2, (0 + max_beta_1) / 2])
-
-        self.beta_bounds = [(min_beta_0, max_beta_0), (min_beta_1, max_beta_1)]
+        self.beta: float = (0 + max_beta_0) / 2
+        self.beta_bounds = [(min_beta_0, max_beta_0)]
 
         self.lamda = 1000
 
@@ -406,11 +392,10 @@ class Akagi:
 
             # Update beta
             # The paper says to use f_u, s_u and beta_u, I didn't
-            beta_res = opt.minimize(
+            beta_res = opt.minimize_scalar(
                 lambda beta_: -self.f(self.s, beta_),
-                x0=beta,
-                method="SLSQP",
-                bounds=self.beta_bounds,
+                bounds=self.beta_bounds[0],
+                method="bounded",
             )
             try:
                 assert beta_res.success
@@ -418,9 +403,9 @@ class Akagi:
                 success = beta_res.success
             except AssertionError as err:
                 print("Error maximizing wrt beta")
-                print(err)
                 print(beta_res.message)
                 print("Bashing on regardless")
+                print(err)
                 beta = beta_res.x
                 success = beta_res.success
 
@@ -578,7 +563,8 @@ class Akagi:
         Calculate the exponent in the distance-based probability
         """
 
-        out = -beta[0] * self.d
+        out = -beta * self.d
+        # out = -beta[0] * self.d
         # out = -(beta[0] * self.d + beta[1] * self.d ** 2)
 
         return out

@@ -386,7 +386,7 @@ class Akagi:
 
             # Fudge to force s != 0
             # Avoids problems with logs of 0 in calculation of f
-            s = s + (s == 0.0) * 1e-5
+            s = s + np.isclose(s, 0.0) * FUDGE
 
             # Renormalize s
             s /= s.max()
@@ -461,7 +461,7 @@ class Akagi:
 
             # Fudge to force s != 0
             # Avoids problems with logs of 0 in calculation of f
-            s = s + (s == 0.0) * 1e-5
+            s = s + (s == 0.0) * FUDGE
 
             # Renormalize s
             s /= s.max()
@@ -547,7 +547,7 @@ class Akagi:
         assert out.shape == (self.num_cells,)
 
         # Fudge: C_u = 0 breaks s = A / C_u
-        out += (out == 0) * 1e-5
+        out += (out == 0) * FUDGE
 
         return out
 

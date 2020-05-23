@@ -110,8 +110,9 @@ class Akagi:
 
         while True:
             print("step # ", step, ", L = ", L)
-            print("beta ", self.beta)
-            print("pi ", self.pi)
+            print("pi[:10]=", self.pi[:10])
+            print("s[:10]=", self.s[:10])
+            print("beta=", self.beta)
 
             success_M = self.update_M(eps, use_derivative)
             print("M done")

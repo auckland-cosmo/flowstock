@@ -216,53 +216,20 @@ class Akagi:
 
         M_reshaped = np.reshape(M, self.M.shape)
 
-        Mder = -self.dLdMlmn(M_reshaped, pi, s, beta, term_0_log, term_1_braces)
+        Mder = -dLdMlmn(
+            M_reshaped,
+            pi,
+            s,
+            beta,
+            term_0_log,
+            term_1_braces,
+            self.N,
+            self.gamma,
+            self.gamma_exc,
+            self.lamda,
+        )
 
         return np.reshape(Mder, (self.T - 1) * self.num_cells ** 2)
-
-    def dLdMlmn(
-        self,
-        M: np.ndarray,
-        pi: np.ndarray,
-        s: np.ndarray,
-        beta: np.ndarray,
-        term_0_log: np.array,
-        term_1_braces: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Calculates the derivative of the likelihood function w.r.t to
-        one of the elements Mlmn.
-        """
-
-        term_1 = term_0_log
-
-        term_2 = term_1_braces
-
-        # We need to be careful with this logarithm if Mtij is zero
-        # This fudge applies to entries in M that should be identically 0, but
-        # they aren't used in the select
-        term_3 = -np.log(M + np.isclose(M, 0) * FUDGE)
-
-        term_4 = self.lamda * (
-            (self.N[:-1] - M.sum(axis=2))[..., np.newaxis]
-            + (self.N[1:] - M.sum(axis=1))[:, np.newaxis, :]
-        )
-
-        term_3_4 = term_3 + term_4
-
-        out = np.select(
-            [
-                self.gamma_exc,  # in gamma but not m==n; short circuits to avoid m==n
-                self.gamma,  # m == n
-            ],
-            [
-                term_2 + term_3_4,  # value when m is in gamma but not m==n
-                term_1 + term_3_4,  # m==n
-            ],
-            default=0.0,
-        )
-
-        return out
 
     def cost(self, M: np.ndarray, N: np.ndarray) -> float:
         """
@@ -686,5 +653,58 @@ def _cost(M: np.ndarray, N: np.ndarray) -> float:
     term_1 = (np.abs(N[1:] - M.sum(axis=1)) ** 2).sum()
 
     out = term_0 + term_1
+
+    return out
+
+
+@numba.jit(nopython=True, fastmath=True)
+def dLdMlmn(
+    M: np.ndarray,
+    pi: np.ndarray,
+    s: np.ndarray,
+    beta: np.ndarray,
+    term_0_log: np.array,
+    term_1_braces: np.ndarray,
+    N: np.ndarray,
+    gamma: np.ndarray,
+    gamma_exc: np.ndarray,
+    lamda: float,
+) -> np.ndarray:
+    """
+    Calculates the derivative of the likelihood function w.r.t to
+    one of the elements Mlmn.
+    """
+
+    T = M.shape[0] + 1
+    num_cells = M.shape[1]
+
+    term_1 = term_0_log
+
+    term_2 = term_1_braces
+
+    # We need to be careful with this logarithm if Mtij is zero
+    # This fudge applies to entries in M that should be identically 0, but
+    # they aren't used in the select
+    term_3 = -np.log(M)  # + np.isclose(M, 0) * FUDGE)
+
+    a = (N[:-1] - M.sum(axis=2)).reshape(T - 1, num_cells, 1)
+    b = (N[1:] - M.sum(axis=1)).reshape(T - 1, 1, num_cells)
+    term_4 = lamda * (a + b)
+
+    term_3_4 = term_3 + term_4
+
+    out = np.select(
+        [
+            gamma_exc.reshape(
+                T - 1, num_cells, num_cells
+            ),  # in gamma but not m==n; short circuits to avoid m==n
+            gamma.reshape(T - 1, num_cells, num_cells),  # m == n
+        ],
+        [
+            term_2 + term_3_4,  # value when m is in gamma but not m==n
+            term_1 + term_3_4,  # m==n
+        ],
+        default=0.0,
+    )
 
     return out

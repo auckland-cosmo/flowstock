@@ -657,7 +657,7 @@ def _cost(M: np.ndarray, N: np.ndarray) -> float:
     return out
 
 
-@numba.jit(nopython=True, fastmath=True)
+@numba.jit(nopython=True, fastmath=True, parallel=True)
 def dLdMlmn(
     M: np.ndarray,
     pi: np.ndarray,
@@ -685,13 +685,17 @@ def dLdMlmn(
     # We need to be careful with this logarithm if Mtij is zero
     # This fudge applies to entries in M that should be identically 0, but
     # they aren't used in the select
-    term_3 = -np.log(M)  # + np.isclose(M, 0) * FUDGE)
+    term_3 = -np.log(M + (M <= FUDGE) * FUDGE)
 
     a = (N[:-1] - M.sum(axis=2)).reshape(T - 1, num_cells, 1)
     b = (N[1:] - M.sum(axis=1)).reshape(T - 1, 1, num_cells)
     term_4 = lamda * (a + b)
 
     term_3_4 = term_3 + term_4
+
+    term_1_3_4 = np.zeros((T - 1, num_cells, num_cells))
+    for i in range(num_cells):
+        term_1_3_4[:, :, i] = term_1 + term_3_4[:, :, i]
 
     out = np.select(
         [
@@ -702,7 +706,7 @@ def dLdMlmn(
         ],
         [
             term_2 + term_3_4,  # value when m is in gamma but not m==n
-            term_1 + term_3_4,  # m==n
+            term_1_3_4,  # m==n
         ],
         default=0.0,
     )

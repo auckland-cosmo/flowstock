@@ -1,4 +1,4 @@
-name: covid
+name: movement
 channels:
   - conda-forge
 dependencies:

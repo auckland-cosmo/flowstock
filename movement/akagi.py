@@ -10,23 +10,31 @@ FUDGE = 1e-9
 
 
 class SaveOptions:
+    """
+    Options specifying how and where to save output
+    """
+
     def __init__(self, path="output", period=1, append_time=True):
 
-        self.output_dir = os.path.join(os.getcwd(), "output")
+        self.output_dir = os.path.join(os.getcwd(), path)
         self.period = period
         self.append_time = append_time
 
     def make_dir(self):
+        """
+        Create the directory for output
+
+        If `self.append_times` is `True`, append the current time to the path.
+        This disambiguates the current simulation.
+        """
         if self.append_time:
-            output_dir = os.path.join(
+            self.output_dir = os.path.join(
                 os.getcwd(), "output", str(datetime.now()).replace(" ", "_")
             )
         else:
-            output_dir = os.path.join(os.getcwd(), "output")
+            self.output_dir = os.path.join(os.getcwd(), "output")
 
-        os.makedirs(output_dir, exist_ok=True)
-
-        self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
 
 
 class Akagi:

@@ -5,10 +5,10 @@ import argparse
 import sys
 from typing import List
 
-import pandas as pd  # type: ignore
-
 import distances  # type: ignore
 import load_csv  # type: ignore
+
+import pandas as pd  # type: ignore  # NOQA
 
 
 def parse_args(args):

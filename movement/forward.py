@@ -15,23 +15,23 @@ class ForwardSimulator:
 
         num_cells = d.shape[0]
 
-        gamma = [np.where(d[i] <= K)[0] for i in range(num_cells)]
-        # gamma_array_indices = np.where(d <= K)
+        gamma = d <= K
 
-        sexp = s * np.exp(-beta * d)
+        sexp = s[..., np.newaxis] * np.exp(-beta * d) * gamma
 
-        theta = np.zeros((num_cells, num_cells))
+        self.theta = np.zeros((num_cells, num_cells))
         for i in range(num_cells):
             for j in range(num_cells):
                 if i == j:
-                    theta[i, j] = 1 - pi[i]
-                elif i in gamma[i]:
-                    theta[i, j] = (
+                    self.theta[i, j] = 1 - pi[i]
+                elif d[i, j] <= K:
+                    self.theta[i, j] = (
                         pi[i] * sexp[i, j] / np.delete(sexp[i], i, axis=0).sum()
                     )
                 else:
-                    theta[i, j] = 0
-        self.theta_cum = np.cumsum(theta, axis=1)
+                    self.theta[i, j] = 0
+        self.theta_cum = np.cumsum(self.theta, axis=1)
+
         assert np.allclose(self.theta_cum[..., -1], 1)
 
     def simulate(self, N_init, num_steps):

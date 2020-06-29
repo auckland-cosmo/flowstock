@@ -30,3 +30,5 @@ repos:
     -   id: mypy
         args: ["--scripts-are-modules"]  # by default there is also "--ignore-missing-imports"
         exclude: "doc"
+
+exclude: "nae-comparison"

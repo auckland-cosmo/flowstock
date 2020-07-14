@@ -83,8 +83,7 @@ class Akagi:
 
         # self.M is the main output of the algorithm
         self.M: np.ndarray = np.zeros((self.T - 1, num_cells, num_cells), dtype=float)
-        for i in range(self.M.shape[0]):
-            np.fill_diagonal(self.M[i], N[i])  # Default to no movement
+        self.init_M_static()
 
         # Initial guesses for parameters
         self.pi: np.ndarray = np.ones(num_cells) / 50
@@ -641,6 +640,43 @@ class Akagi:
         np.save(os.path.join(output_dir, "pi" + step_fmt), self.pi)
         np.save(os.path.join(output_dir, "s" + step_fmt), self.s)
         np.save(os.path.join(output_dir, "beta" + step_fmt), self.beta)
+
+    def init_M_static(self):
+        """
+        Initialise `M` such that people don't move
+        """
+
+        for i in range(self.M.shape[0]):
+            np.fill_diagonal(self.M[i], self.N[i])  # Default to no movement
+
+    def init_M_moving(self):
+        """
+        Initialise `M` to reflect a local decrease in the count
+        """
+
+        self.M = np.zeros_like(self.M)
+        self.M += (
+            self.gamma_exc
+            * (np.abs(self.N[:-1] - self.N[1:]) / self.gamma_exc.sum(axis=1))[
+                ..., np.newaxis
+            ]
+        )
+        for i in range(self.M.shape[0]):
+            np.fill_diagonal(self.M[i], self.N[i] - self.M.sum(axis=2))
+
+    def M_jitter(self, amplitude):
+        """
+        Add some perturbations to `M`
+
+        The amplitude is as a fraction of the current population.
+        """
+
+        self.M += (
+            self.gamma
+            * np.random.random(size=self.M.shape)
+            * amplitude
+            * self.N[:-1, ..., np.newaxis]
+        )
 
 
 @numba.jit(nopython=True, fastmath=True, parallel=True)

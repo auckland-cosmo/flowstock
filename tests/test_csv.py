@@ -1,4 +1,4 @@
-from movement.data.load_csv import (
+from flowstock.data.load_csv import (
     load_area_data_2018,
     load_centroid_data_2018,
     load_hierarchy_data_2018,

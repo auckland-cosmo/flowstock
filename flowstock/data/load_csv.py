@@ -124,8 +124,8 @@ def load_area_data_2018(path: os.PathLike) -> pd.DataFrame:
 
     df = df.rename(
         columns={
-            "SA22018_V1_00": "region_code",
-            "SA22018_V1_NAME": "region_name",
+            "SA22018_V1_00": "sa2_code",
+            "SA22018_V1_NAME": "sa2_name",
             "AREA_SQ_KM": "area",
         }
     )

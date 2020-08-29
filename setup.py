@@ -12,14 +12,15 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="movement",  # name of package on import
-    version="0.0.1",
-    description="Estimation of movement patterns from snapshots",
+    name="flowstock",  # name of package on import
+    version="0.0.1-dev",
+    description="Estimation of movements from snapshots",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="",
-    author="Nathan Musoke, ",
-    author_email="",
+    author="Mateja Gosenca, Lillian Guo, Emily Kendall,\
+            Lerh Feng Low, Nathan Musoke, Richard Easther",
+    author_email="n.musoke@auckland.ac.nz",
     # license="Apache Licence (2.0)",
     packages=setuptools.find_packages(),
     install_requires=[

@@ -1,3 +1,9 @@
+flowstock
+#########
+
+.. image:: https://badge.fury.io/py/flowstock.svg
+    :target: https://badge.fury.io/py/flowstock
+
 Estimate flows of people from snapshots using the method of [Akagi2018]_.
 
 There are two parts to this package
@@ -27,14 +33,34 @@ There are still some rough edges and there may be more corner cases to be taken 
 Installation
 ============
 
+pip
+---
+
+The package is available on pypi.org_.
+.. code-block:: bash
+
+    pip install flowstock
+    pytest
+
+To run tests during the install process,
+.. code-block:: bash
+
+    pip install --install-option test flowstock
+
+
+source
+------
+
 A conda environment specification is included.
-This environment has been testing on Linux and OS X.
+This environment has been tested on Linux and OS X.
 
 .. code-block:: bash
 
     conda env create -f environment.yml
-    conda activate movement
+    conda activate flowstock
     pip install -e .
+    pytest
 
+.. _pypi.org: https://pypi.org/project/layg/
 
 .. [Akagi2018] Y. Akagi, T. Nishimura, T. Kurashima, and H. Toda, “A Fast and Accurate Method for Estimating People Flow from Spatiotemporal Population Data,” in Proceedings of the Twenty-Seventh International Joint Conference on Artificial Intelligence, Stockholm, Sweden, Jul. 2018, pp. 3293–3300, doi: 10.24963/ijcai.2018/457.

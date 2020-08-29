@@ -1,3 +1,7 @@
+"""
+Estimate the movement of people from snapshots of counts
+"""
+
 import os
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
@@ -6,15 +10,30 @@ import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
 
+# FUDGE is used in a few places to avoid overflows and underflows
 FUDGE = 1e-9
 
 
 class SaveOptions:
     """
     Options specifying how and where to save output
+
+    Parameters
+    ----------
+
+    path : path, optional
+        Path to which output should be saved, relative to the current working directory
+
+    period : int, optional
+        Period with which to save output.
+        1 saves every step.
+
+    append_time : bool, optional
+        Whether to append the current time to the path.
+        This helps to avoid conflicts between different runs.
     """
 
-    def __init__(self, path="output", period=1, append_time=True):
+    def __init__(self, path="output", period: int = 1, append_time: bool = True):
 
         self.output_dir = os.path.join(os.getcwd(), path)
         self.period = period
@@ -38,9 +57,84 @@ class SaveOptions:
 
 
 class Akagi:
-
     """
     Use the method of Akagi et al to estimate movement
+
+    Parameters
+    ----------
+
+    N : np.ndarray
+        Array of data to fit to.
+        `N.shape == (T, N)`, where `T` is the number of times with data and `N` is the
+        number of regions.
+
+    d : np.ndarray
+        Array of distances between regions.
+        `d.shape == (N, N)`, where `N` is the number of regions.
+
+    K : float
+        Distance cutoff.
+        Regions with distance greater than `K` are assumed not to have people flow
+        between them.
+
+    Attributes
+    ----------
+
+    M : np.ndarray
+        The current guess of the movement array.
+        `M.shape == (T - 1, N, N)`
+
+    pi : np.ndarray
+        The current guess of the departure probabilities.
+
+    s : np.ndarray
+        The current guess of the gathering scores.
+
+    beta : float
+        The current guess of the distance dependence.
+
+    lambda : float
+        Weighting of the cost function.
+
+    N : np.ndarray
+
+    d : np.ndarray
+
+    K : float
+
+    T : int
+
+    num_cells : int
+
+    gamma : np.ndarray
+        Boolean array of neighbouring cells, including self as a neighbour.
+        `gamma[i, j] is True` if and only if `d[i, j] <= K`.
+
+    gamma_exc : np.ndarray
+        Boolean array of neighbouring cells, excluding self as a neighbour.
+        `gamma[i, j] is True` if and only if `d[i, j] <= K` and `i is not j`.
+
+    gamma_indices : np.ndarray
+        List of indices of neighbors of regions, including the originating region.
+        `gamma_indices[i]` contains indices of all regions within distance `K` of region
+        `i`.
+
+    gamma_exc_indices : np.ndarray
+        List of indices of neighbors of regions, excluding the originating region.
+
+    Notes
+    -----
+
+    Every region must have at least one possible destination.
+
+    References
+    ----------
+
+    .. [Akagi2018] Y. Akagi, T. Nishimura, T. Kurashima, and H. Toda, “A Fast and
+    Accurate Method for Estimating People Flow from Spatiotemporal Population Data,”
+    in Proceedings of the Twenty-Seventh International Joint Conference on Artificial
+    Intelligence, Stockholm, Sweden, Jul. 2018, pp. 3293–3300,
+    doi: 10.24963/ijcai.2018/457.
     """
 
     def __init__(
@@ -72,12 +166,12 @@ class Akagi:
         # Distance threshold
         self.K: float = K
 
-        # List of indices of neighbors of respective cells
         self.gamma: np.ndarray = self.gamma_calc()
         # Gamma excluding self
         self.gamma_exc: np.ndarray = self.gamma.copy()
         np.fill_diagonal(self.gamma_exc, False)
 
+        # List of indices of neighbors of respective cells
         self.gamma_indices = np.where(self.gamma)
         self.gamma_exc_indices = np.where(self.gamma_exc)
 
@@ -105,7 +199,21 @@ class Akagi:
         self, eps: float, use_derivative: bool = True
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
-        Estimate the movement of people in N and internal parameters
+        Estimate the movement of people from data `self.N`.
+
+        Parameters
+        ----------
+
+        eps : float
+            Threshold used in optimizations.
+
+        use_derivative : bool, optional
+            Whether to use the analytic derivative of the likelihood.
+            In normal usage this should be true.
+
+        Returns
+        -------
+        (M, pi, s, beta) : Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         """
 
         self.save_options.make_dir()
@@ -144,12 +252,42 @@ class Akagi:
         return self.M, self.pi, self.s, self.beta
 
     def neg_likelihood_flat(
-        self, M, pi, s, beta, term_0_log=None, term_1_braces=None
+        self,
+        M: np.ndarray,
+        pi: np.ndarray,
+        s: np.ndarray,
+        beta: float,
+        term_0_log: Optional[np.ndarray] = None,
+        term_1_braces: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
-        Calculate likelihood with flattened M
+        Calculate likelihood with `M` flattened
 
-        Needed for `scipy.optimize.minimize` to work right
+        This function is needed to interface with the API of
+        `scipy.optimize.minimize`, which expects a function of a vector.
+
+        Parameters
+        ----------
+
+        M: np.ndarray
+            Flattened `M`.  It should have shape `(T-1) * N * N`, NOT `(T-1, N, N)`.
+
+        pi: np.ndarray
+
+        s: np.ndarray
+
+        beta: np.ndarray
+
+        term_0_log: Optional[np.ndnarry]
+        term_1_braces: Optional[np.ndnarry]
+            There is an option to pass in precomputed values for some terms in
+            the likelihood.  This can speed the algorithm up significantly if
+            used when minimizing with respect to `M`.
+
+        Returns
+        -------
+
+        float
         """
 
         M_reshaped = np.reshape(M, self.M.shape)
@@ -173,11 +311,24 @@ class Akagi:
         Parameters
         ----------
 
+        M: np.ndarray
+
+        pi: np.ndarray
+
+        s: np.ndarray
+
+        beta: np.ndarray
+
         term_0_log: Optional[np.ndnarry]
         term_1_braces: Optional[np.ndnarry]
-            There is the option of caching some terms in the likelihood.  This
-            can speed the algorithm up significantly if used when minimizing
-            with respect to `M`.
+            There is an option to pass in precomputed values for some terms in
+            the likelihood.  This can speed the algorithm up significantly if
+            used when minimizing with respect to `M`.
+
+        Returns
+        -------
+
+        float
         """
 
         if term_0_log is None:
@@ -209,10 +360,30 @@ class Akagi:
         self, M, pi, s, beta, term_0_log=None, term_1_braces=None
     ) -> np.ndarray:
         """
-        Flattening the matix M for derivative.
+        The Jacobian of the likelihood as a function of a flattened `M`
 
-        Also, populate the output matrix dL/dMtij for each t,i,j.
-        Needs to be fixed so that the loops areplaced with something pythonic.
+        Parameters
+        ----------
+
+        M: np.ndarray
+            Flattened `M`.  It should have shape `(T-1) * N * N`, NOT `(T-1, N, N)`.
+
+        pi: np.ndarray
+
+        s: np.ndarray
+
+        beta: np.ndarray
+
+        term_0_log: Optional[np.ndnarry]
+        term_1_braces: Optional[np.ndnarry]
+            There is an option to pass in precomputed values for some terms in
+            the likelihood.  This can speed the algorithm up significantly if
+            used when minimizing with respect to `M`.
+
+        Returns
+        -------
+
+        np.ndarray
         """
 
         if term_0_log is None:
@@ -237,8 +408,29 @@ class Akagi:
         term_1_braces: np.ndarray,
     ) -> np.ndarray:
         """
-        Calculates the derivative of the likelihood function w.r.t to
-        one of the elements Mlmn.
+        Calculate the Jacobian of the likelihood as a function of `M`
+
+        Parameters
+        ----------
+
+        M: np.ndarray
+
+        pi: np.ndarray
+
+        s: np.ndarray
+
+        beta: np.ndarray
+
+        term_0_log: Optional[np.ndnarry]
+        term_1_braces: Optional[np.ndnarry]
+            There is an option to pass in precomputed values for some terms in
+            the likelihood.  This can speed the algorithm up significantly if
+            used when minimizing with respect to `M`.
+
+        Returns
+        -------
+
+        np.ndarray
         """
 
         term_1 = term_0_log
@@ -272,8 +464,25 @@ class Akagi:
         return out
 
     def cost(self, M: np.ndarray, N: np.ndarray) -> float:
-        """
+        r"""
         Cost function
+
+        Parameters
+        ----------
+
+        M : np.ndarray
+        N : np.ndarray
+
+        Notes
+        -----
+
+        .. math::
+
+            \mathcal{C}({\bf M})}
+            =
+            \sum_{t=0}^{T-2} \sum_{i} {\left( N_{ti} - \sum_{j} \Mtij\right)}^2
+            +
+            \sum_{t=0}^{T-2} \sum_{i} {\left( N_{t+1,i} - \sum_{j} \Mtji\right)}^2
         """
 
         return _cost(M, N)
@@ -309,14 +518,28 @@ class Akagi:
 
     def update_M(self, eps: float, use_derivative: bool) -> bool:
         """
-        Update M
+        Minimize likelihood with respect to `M`
 
-        Search for an M that minimizes the likelihood
+        Search for an M that minimizes the likelihood, while leaving `pi`, `s`, `beta`
+        fixed.
+        Use the limited-memory BFGS optimization method.
+
+        Parameters
+        ----------
+
+        eps : float
+
+        use_derivative : bool, optional
 
         Returns
         -------
         bool : True if there were no errors
                False if there were errors
+
+        Notes
+        -----
+
+        Constraints are put on `M` to obey the maximum distance `K`.
         """
 
         bounds = self.M_bound()
@@ -350,13 +573,22 @@ class Akagi:
         except AssertionError:
             print("Error minimizing M", result.message)
 
-        # print(self.M[0][:10, :10])
         self.M = np.reshape(result.x, self.M.shape)
-        # print(self.M[0][:10, :10])
 
         return result.success
 
     def update_pi(self):
+        """
+        Minimize likelihood with respect to `pi`
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        None
+        """
 
         numer = self.M.sum(where=self.gamma_exc, axis=2).sum(axis=0)
         denom = self.M.sum(axis=2).sum(axis=0)
@@ -367,7 +599,11 @@ class Akagi:
 
     def update_s_beta(self, eps: float) -> bool:
         """
-        Update s and beta iteratively
+        Minimize likelihood with respect to `s` and `beta`
+
+        Parameters
+        ----------
+        eps : float
 
         Returns
         -------
@@ -511,6 +747,17 @@ class Akagi:
     def f(self, s, beta) -> float:
         """
         Objective function for Minorization-Maximization Algorith
+
+        Parameters
+        ----------
+        s : np.ndarray
+
+        beta : float
+
+        Returns
+        -------
+
+        float
         """
 
         A = self.A()

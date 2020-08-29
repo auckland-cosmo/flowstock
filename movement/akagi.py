@@ -426,8 +426,9 @@ class Akagi:
             step += 1
 
             # Check for cycles
-            if step > 10_000 and abs(f_0 - f_1) > abs(f_0 - f_2):
+            if step > 1_000 and abs(f_0 - f_1) > abs(f_0 - f_2):
                 success = False
+                print("s, beta: optimization caught in cycle; terminated")
                 break
 
         self.s = s

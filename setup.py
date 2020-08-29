@@ -28,9 +28,12 @@ setuptools.setup(
         "numpy",
         "scipy",
         "pandas",
+        "pytest",
         "geopandas",
         "numba",
     ],  # dependencies
+    setup_requires=["pytest-runner"],
+    tests_require=["pytest"],
     classifiers=[
         "Programming Language :: Python :: 3",
         # "License :: OSI Approved :: Apache Software License",

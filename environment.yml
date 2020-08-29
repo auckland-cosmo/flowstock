@@ -1,4 +1,4 @@
-name: movement
+name: flowstock
 channels:
   - conda-forge
 dependencies:

@@ -37,12 +37,14 @@ pip
 ---
 
 The package is available on pypi.org_.
+
 .. code-block:: bash
 
     pip install flowstock
     pytest
 
 To run tests during the install process,
+
 .. code-block:: bash
 
     pip install --install-option test flowstock

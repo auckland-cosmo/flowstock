@@ -17,7 +17,7 @@ class ForwardSimulator:
 
         gamma = d <= K
 
-        sexp = s[..., np.newaxis] * np.exp(-beta * d) * gamma
+        sexp = s[np.newaxis, ...] * np.exp(-beta * d) * gamma
 
         self.theta = np.zeros((num_cells, num_cells))
         for i in range(num_cells):

@@ -10,6 +10,19 @@ class ForwardSimulator:
         self.pi = pi
         self.beta = beta
         self.d = d
+        self.K = K
+
+        # Check if each cell has a possible destination
+        has_destination = np.any(
+            np.logical_and(np.greater(d, 0), np.less_equal(d, K),), axis=1,
+        )
+
+        # Check if no one leaves a cell
+        never_leave = self.pi == 0
+
+        # Check if everyone who leaves has a possible destination
+        if not np.all(np.logical_or(has_destination, never_leave)):
+            raise ValueError("At least one cell has no destinations")
 
         self.noise_amplitude = 0.0
 

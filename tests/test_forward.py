@@ -3,6 +3,7 @@ Tests of the generation of test data
 """
 
 import numpy as np  # type: ignore
+import pytest  # type: ignore
 
 from flowstock import forward  # NOQA
 
@@ -122,3 +123,49 @@ def test_gathering_scores():
     # Should have approximately twice as many people in region 2 as region 0
     assert N_end[0] / N_end[2] < 0.60
     assert N_end[0] / N_end[2] > 0.40
+
+
+def test_no_destinations():
+    """
+    An exception should be raised if there is no possible destination for a cell
+    """
+
+    num_cells = 3
+
+    pi = np.zeros(num_cells)
+    # Always leave middle region
+    pi[1] = 1
+
+    s = np.ones_like(pi)
+    beta = 1
+
+    pos = np.arange(num_cells)
+    d = np.abs(pos[np.newaxis, :] - pos[:, np.newaxis])
+
+    # Distance cutoff is too short to move anywhere
+    K = np.diff(pos).min() / 2
+
+    with pytest.raises(ValueError) as _:
+        _ = forward.ForwardSimulator(pi, s, beta, d, K)
+
+
+def test_no_destinations_no_leave():
+    """
+    An exception should NOT be raised if there is no possible destination for a
+    cell but leaving probability is zero.
+    """
+
+    num_cells = 3
+
+    pi = np.zeros(num_cells)
+
+    s = np.ones_like(pi)
+    beta = 1
+
+    pos = np.arange(num_cells)
+    d = np.abs(pos[np.newaxis, :] - pos[:, np.newaxis])
+
+    # Distance cutoff is too short to move anywhere
+    K = np.diff(pos).min() / 2
+
+    _ = forward.ForwardSimulator(pi, s, beta, d, K)

@@ -6,9 +6,10 @@ import os
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
-import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
+
+import numba  # type: ignore
 
 # FUDGE is used in a few places to avoid overflows and underflows
 FUDGE = 1e-9
@@ -396,7 +397,7 @@ class Akagi:
 
         Mder = -self.dLdMlmn(M_reshaped, pi, s, beta, term_0_log, term_1_braces)
 
-        return np.reshape(Mder, (self.T - 1) * self.num_cells ** 2)
+        return np.reshape(Mder, (self.T - 1) * self.num_cells**2)
 
     def dLdMlmn(
         self,
@@ -541,6 +542,8 @@ class Akagi:
 
         Constraints are put on `M` to obey the maximum distance `K`.
         """
+
+        __import__("pudb").set_trace()
 
         bounds = self.M_bound()
 

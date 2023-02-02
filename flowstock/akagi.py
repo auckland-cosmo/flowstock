@@ -558,7 +558,7 @@ class Akagi:
         result = opt.minimize(
             self.neg_likelihood_flat,
             # Use current M as initial guess
-            x0=self.M,
+            x0=self.M.flatten(),
             args=(self.pi, self.s, self.beta, term_0_log, term_1_braces),
             method="L-BFGS-B",
             jac=jac,

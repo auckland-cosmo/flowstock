@@ -19,9 +19,11 @@ Another is designed to run on real world data.
 It requires the user to supply additional data: counts of people in New Zealand SA2 regions and properties of those regions.
 The later information is available from StatsNZ:
 
+- `SA2 locations`_
 - `Centroid locations`_
 - `Higher geographies`_
 
+.. _`SA2 locations`: https://datafinder.stats.govt.nz/layer/92212-statistical-area-2-2018-generalised/data/
 .. _`Centroid locations`: https://datafinder.stats.govt.nz/layer/93620-statistical-area-2-2018-centroid-true/
 .. _`Higher geographies`: https://datafinder.stats.govt.nz/layer/95065-statistical-area-2-higher-geographies-2018-generalised/data/
 

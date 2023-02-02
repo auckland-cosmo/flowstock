@@ -1,7 +1,8 @@
 import os
 
-import geopandas  # type: ignore
 import pandas as pd  # type: ignore
+
+import geopandas  # type: ignore
 from shapely import wkt  # type: ignore
 
 
@@ -109,6 +110,8 @@ def load_area_data_2018(path: os.PathLike) -> pd.DataFrame:
     Load area data from a csv file to a dataframe
 
     Ignore some columns that don't look too useful and rename the others
+
+    https://datafinder.stats.govt.nz/layer/92212-statistical-area-2-2018-generalised/data/
     """
 
     dtype_dict = {

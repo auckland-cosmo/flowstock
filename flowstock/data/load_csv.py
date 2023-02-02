@@ -1,8 +1,7 @@
 import os
 
-import pandas as pd  # type: ignore
-
 import geopandas  # type: ignore
+import pandas as pd  # type: ignore
 from shapely import wkt  # type: ignore
 
 

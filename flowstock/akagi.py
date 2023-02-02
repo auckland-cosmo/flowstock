@@ -6,10 +6,9 @@ import os
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
+import numba  # type: ignore
 import numpy as np  # type: ignore
 import scipy.optimize as opt  # type: ignore
-
-import numba  # type: ignore
 
 # FUDGE is used in a few places to avoid overflows and underflows
 FUDGE = 1e-9

@@ -7,7 +7,6 @@ from typing import List
 
 import distances  # type: ignore
 import load_csv  # type: ignore
-
 import pandas as pd  # type: ignore  # NOQA
 
 

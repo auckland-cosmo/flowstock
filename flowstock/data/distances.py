@@ -5,10 +5,9 @@ import argparse
 import sys
 from typing import List
 
+import geopandas  # type: ignore
 import numpy as np  # type: ignore
 import pandas  # type: ignore
-
-import geopandas  # type: ignore
 
 from . import load_csv
 

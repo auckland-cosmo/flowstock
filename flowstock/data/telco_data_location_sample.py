@@ -19,20 +19,24 @@ def parse_args(args):
     parser = argparse.ArgumentParser(args)
 
     parser.add_argument(
-        "telco_file_name", help="A csv file of location data",
+        "telco_file_name",
+        help="A csv file of location data",
     )
     parser.add_argument(
         "location_file_name",
         help="A csv file from Stats NZ containing locations of centroids",
     )
     parser.add_argument(
-        "out", help="Where to write a CSV with output",
+        "out",
+        help="Where to write a CSV with output",
     )
     parser.add_argument(
-        "dist", help="Limit to areas less than dist from loc",
+        "dist",
+        help="Limit to areas less than dist from loc",
     )
     parser.add_argument(
-        "loc", help="Limit to areas less than dist from loc",
+        "loc",
+        help="Limit to areas less than dist from loc",
     )
 
     args = parser.parse_args()

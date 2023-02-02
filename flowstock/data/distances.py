@@ -5,9 +5,10 @@ import argparse
 import sys
 from typing import List
 
-import geopandas  # type: ignore
 import numpy as np  # type: ignore
 import pandas  # type: ignore
+
+import geopandas  # type: ignore
 
 from . import load_csv
 
@@ -36,7 +37,11 @@ class AreaSubset:
         )
         self.reset_index()
 
-    def filter_radius(self, loc: str, dist: float,) -> geopandas.GeoDataFrame:
+    def filter_radius(
+        self,
+        loc: str,
+        dist: float,
+    ) -> geopandas.GeoDataFrame:
         """
         Remove points further than `dist` from `loc`, inplace
         """
@@ -168,7 +173,8 @@ def parse_args(args):
         help="A csv file from Stats NZ containing hierarchical data about SA2 regions",
     )
     parser.add_argument(
-        "out", help="Where to write a CSV with output",
+        "out",
+        help="Where to write a CSV with output",
     )
     parser.add_argument(
         "-d",

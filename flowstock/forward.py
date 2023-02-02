@@ -3,7 +3,12 @@ import numpy as np  # type: ignore
 
 class ForwardSimulator:
     def __init__(
-        self, pi, s, beta, d, K,
+        self,
+        pi,
+        s,
+        beta,
+        d,
+        K,
     ):
 
         self.s = s
@@ -14,7 +19,11 @@ class ForwardSimulator:
 
         # Check if each cell has a possible destination
         has_destination = np.any(
-            np.logical_and(np.greater(d, 0), np.less_equal(d, K),), axis=1,
+            np.logical_and(
+                np.greater(d, 0),
+                np.less_equal(d, K),
+            ),
+            axis=1,
         )
 
         # Check if no one leaves a cell

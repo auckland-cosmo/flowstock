@@ -542,8 +542,6 @@ class Akagi:
         Constraints are put on `M` to obey the maximum distance `K`.
         """
 
-        __import__("pudb").set_trace()
-
         bounds = self.M_bound()
 
         term_0_log = self.term_0_log(self.pi)
